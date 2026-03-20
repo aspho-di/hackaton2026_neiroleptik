@@ -203,7 +203,7 @@ const CROP_COMPONENTS = {
   соя:          SoyCrop,
 }
 
-export default function CropSVG({ crop, status, temp = 20, precip = 5 }) {
+export default function CropSVG({ crop, status, temp = 20, precip = 5, width = 110, height = 90 }) {
   const palette = PALETTES[crop] ?? PALETTES['пшеница']
   const p = palette[status] ?? palette['normal']
   const CropComponent = CROP_COMPONENTS[crop] ?? WheatCrop
@@ -215,8 +215,8 @@ export default function CropSVG({ crop, status, temp = 20, precip = 5 }) {
   return (
     <svg
       viewBox="0 0 120 100"
-      width="110"
-      height="90"
+      width={width}
+      height={height}
       style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
       aria-hidden="true"
     >

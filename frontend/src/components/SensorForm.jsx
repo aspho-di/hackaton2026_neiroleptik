@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MOCK_FORECAST, MOCK_IRRIGATION } from '../mockData'
 import AnomalyAlert from './AnomalyAlert'
+import { IconCheck, IconX } from './icons/Icons'
 
 const API_FORECAST   = 'http://localhost:8001/predict/forecast'
 const API_IRRIGATION = 'http://localhost:8002/recommend/irrigation'
@@ -17,7 +18,7 @@ const inputStyle = {
   transition: 'border-color 0.15s, box-shadow 0.15s',
 }
 
-export default function SensorForm({ fieldId }) {
+export default function SensorForm({ fieldId, onResult }) {
   const [form, setForm] = useState({
     soil_moisture_percent: '',
     soil_temperature: '',
@@ -71,6 +72,7 @@ export default function SensorForm({ fieldId }) {
       }
 
       setResult(irrigationData)
+      onResult?.({ irrigation: irrigationData, precip: precip })
     } catch {
       setError('Не удалось выполнить расчёт. Попробуйте снова.')
     } finally {
@@ -156,7 +158,11 @@ export default function SensorForm({ fieldId }) {
               Рекомендация по поливу
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-              <Stat label="Нужен полив"  value={result.irrigation_needed ? '✅ Да' : '❌ Нет'} />
+              <Stat label="Нужен полив" value={
+                result.irrigation_needed
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IconCheck size={14} color="var(--color-normal)" /> Да</span>
+                  : <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IconX size={14} color="var(--color-anomaly)" /> Нет</span>
+              } />
               {result.irrigation_needed && (
                 <>
                   <Stat label="Объём" value={`${result.amount_mm} мм`} />

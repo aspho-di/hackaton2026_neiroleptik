@@ -1,32 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { setUser } from '../auth'
-
-const DISTRICTS = [
-  'Аксайский район',
-  'Азовский район',
-  'Батайский район',
-  'Белокалитвинский район',
-  'Волгодонской район',
-  'Зерноградский район',
-  'Каменский район',
-  'Константиновский район',
-  'Красносулинский район',
-  'Миллеровский район',
-  'Морозовский район',
-  'Новочеркасский район',
-  'Новошахтинский район',
-  'Октябрьский район',
-  'Орловский район',
-  'Пролетарский район',
-  'Ростовский район',
-  'Сальский район',
-  'Семикаракорский район',
-  'Таганрогский район',
-  'Усть-Донецкий район',
-  'Цимлянский район',
-  'Шахтинский район',
-]
+import { DISTRICTS } from '../constants/districts'
+import { IconWheat } from '../components/icons/Icons'
 
 const inputStyle = {
   width: '100%',
@@ -89,7 +65,9 @@ export default function Register() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '36px', marginBottom: '8px' }}>🌾</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+            <IconWheat size={40} color="var(--color-primary)" />
+          </div>
           <div style={{
             fontFamily: 'Montserrat, sans-serif',
             fontWeight: 700,

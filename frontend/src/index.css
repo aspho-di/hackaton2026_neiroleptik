@@ -56,3 +56,16 @@ button {
 input, select, textarea {
   font-family: inherit;
 }
+
+.field-detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .field-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

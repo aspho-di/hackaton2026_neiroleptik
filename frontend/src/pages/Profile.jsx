@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
 import { MOCK_FIELDS } from '../mockData'
 import { getUser, removeUser } from '../auth'
+import { IconWheat, IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
 
 function Avatar({ name, size = 80 }) {
   const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -27,7 +28,7 @@ function Avatar({ name, size = 80 }) {
 function InfoRow({ icon, label, value }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: '1px solid var(--color-border)' }}>
-      <span style={{ fontSize: '18px', width: '24px', textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+      <span style={{ width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1px' }}>
           {label}
@@ -51,7 +52,7 @@ function StatCard({ icon, value, label, valueColor }) {
       textAlign: 'center',
       flex: '1 1 120px',
     }}>
-      <div style={{ fontSize: '24px', marginBottom: '6px' }}>{icon}</div>
+      <div style={{ marginBottom: '6px', display: 'flex' }}>{icon}</div>
       <div style={{
         fontSize: '28px',
         fontWeight: 700,
@@ -89,7 +90,7 @@ export default function Profile() {
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       <Navbar />
 
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '28px 16px 48px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 48px' }}>
 
         {/* Header card */}
         <div style={{
@@ -142,9 +143,9 @@ export default function Profile() {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <StatCard icon="🌾" value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
-          <StatCard icon="🔴" value={stats.active_anomalies}           label="Активных аномалий"      valueColor="var(--color-anomaly)" />
-          <StatCard icon="✅" value={stats.completed_recommendations}  label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
+          <StatCard icon={<IconWheat size={24} color="var(--color-text-muted)" />}         value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
+          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={stats.active_anomalies}           label="Активных аномалий"      valueColor="var(--color-anomaly)" />
+          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={stats.completed_recommendations}  label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
         </div>
 
         {/* Contact & info card */}
@@ -156,10 +157,10 @@ export default function Profile() {
           padding: '4px 20px',
           marginBottom: '20px',
         }}>
-          <InfoRow icon="🏢" label="Организация"        value={organization} />
-          <InfoRow icon="📍" label="Район обслуживания" value={district} />
-          <InfoRow icon="📧" label="Email"               value={email} />
-          <InfoRow icon="📞" label="Телефон"             value={phone} />
+          <InfoRow icon={<IconBuilding size={18} color="var(--color-text-muted)" />} label="Организация"        value={organization} />
+          <InfoRow icon={<IconMapPin  size={18} color="var(--color-text-muted)" />} label="Район обслуживания" value={district} />
+          <InfoRow icon={<IconMail   size={18} color="var(--color-text-muted)" />} label="Email"               value={email} />
+          <InfoRow icon={<IconPhone  size={18} color="var(--color-text-muted)" />} label="Телефон"             value={phone} />
         </div>
 
         {/* Fields list */}
@@ -177,7 +178,7 @@ export default function Profile() {
             alignItems: 'center',
             gap: '8px',
           }}>
-            <span style={{ fontSize: '16px' }}>🗺️</span>
+            <IconMap size={16} color="var(--color-text-muted)" />
             <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Закреплённые поля</h2>
           </div>
           {MOCK_FIELDS.map((field, i) => (
