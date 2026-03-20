@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getUser } from '../auth'
+import { IconWheat } from './icons/Icons'
 
 function Avatar({ name, size = 36 }) {
   const initials = (name || 'AG')
@@ -58,7 +59,7 @@ export default function Navbar() {
     }}>
       {/* Logo */}
       <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-        <span style={{ fontSize: '22px', lineHeight: 1 }}>🌾</span>
+        <IconWheat size={22} color="#fff" />
         <span style={{
           color: '#fff',
           fontFamily: 'Montserrat, sans-serif',

@@ -40,21 +40,27 @@ export default function FieldCard({ field }) {
     >
       {/* Text info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontFamily: 'Montserrat, sans-serif',
-          fontWeight: 600,
-          fontSize: '15px',
-          color: 'var(--color-text)',
-          marginBottom: '4px',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>
-          {field.name}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-          ID: {field.field_id}
-        </div>
+        {(() => {
+          const match = field.name.match(/Участок (\d+) — (.+)/)
+          const number = match ? match[1] : field.field_id
+          const title  = match ? match[2] : field.name
+          return (
+            <>
+              <div style={{
+                fontFamily: 'Montserrat, sans-serif',
+                fontWeight: 600,
+                fontSize: '15px',
+                color: 'var(--color-text)',
+                marginBottom: '2px',
+              }}>
+                Участок №{number}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                {title}
+              </div>
+            </>
+          )
+        })()}
         <StatusBadge status={field.status} />
       </div>
 

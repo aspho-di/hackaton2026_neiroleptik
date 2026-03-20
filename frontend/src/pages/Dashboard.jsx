@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import FieldList from '../components/FieldList'
+import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
 import { MOCK_FIELDS } from '../mockData'
 import { getUser } from '../auth'
 
@@ -9,18 +11,19 @@ const STAT_CARDS = [
   { key: 'anomaly', dot: '#ef4444', label: 'Аномалии',          filter: f => f.status === 'anomaly' },
 ]
 
-function StatCard({ dot, label, count }) {
+function StatPill({ dot, label, count }) {
   return (
     <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
       background: 'var(--color-surface)',
       border: '1px solid var(--color-border)',
-      borderRadius: 'var(--radius-card)',
-      boxShadow: 'var(--shadow-card)',
-      padding: '12px 16px',
-      flex: '1 1 100px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
+      borderRadius: '20px',
+      padding: '5px 12px',
+      fontSize: '13px',
+      color: 'var(--color-text)',
+      whiteSpace: 'nowrap',
     }}>
       <span style={{
         width: '8px', height: '8px',
@@ -29,32 +32,31 @@ function StatCard({ dot, label, count }) {
         flexShrink: 0,
         display: 'inline-block',
       }} />
-      <div>
-        <div style={{
-          fontSize: '18px',
-          fontWeight: 700,
-          fontFamily: 'Montserrat, sans-serif',
-          color: 'var(--color-text)',
-          lineHeight: 1,
-          marginBottom: '2px',
-        }}>
-          {count}
-        </div>
-        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{label}</div>
-      </div>
+      <span style={{ fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>{count}</span>
+      <span style={{ color: 'var(--color-text-muted)' }}>{label}</span>
     </div>
   )
 }
 
 export default function Dashboard() {
   const user = getUser()
-  const firstName = (user?.name || '').split(' ')[0] || 'Агроном'
+  const parts = (user?.name || '').trim().split(' ')
+  const firstName = parts.slice(1, 3).join(' ') || 'Агроном'
+
+  const [savedFields, setSavedFields] = useState(() => loadSavedFields())
+  const [showModal, setShowModal] = useState(false)
+
+  const allFields = [...MOCK_FIELDS, ...savedFields]
+
+  function handleAdd(newField) {
+    setSavedFields(prev => [...prev, newField])
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       <Navbar />
 
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '28px 16px 48px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 48px' }}>
 
         {/* Greeting */}
         <div style={{ marginBottom: '24px' }}>
@@ -66,28 +68,67 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stat cards */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        {/* Stat pills */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
           {STAT_CARDS.map(card => (
-            <StatCard
+            <StatPill
               key={card.key}
               dot={card.dot}
               label={card.label}
-              count={MOCK_FIELDS.filter(card.filter).length}
+              count={allFields.filter(card.filter).length}
             />
           ))}
         </div>
 
-        {/* Section header */}
+        {/* Section header + кнопка добавить */}
         <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Мои поля</h2>
-          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-            {MOCK_FIELDS.length} участков
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Мои поля</h2>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              {allFields.length} участков
+            </span>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#fff',
+              border: '1px solid var(--color-accent)',
+              borderRadius: '10px',
+              padding: '10px 24px',
+              fontSize: '15px',
+              fontWeight: 600,
+              color: 'var(--color-accent)',
+              cursor: 'pointer',
+              fontFamily: 'Montserrat, sans-serif',
+              transition: 'background 0.15s, color 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--color-accent)'
+              e.currentTarget.style.color = '#fff'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#fff'
+              e.currentTarget.style.color = 'var(--color-accent)'
+            }}
+          >
+            + Добавить участок
+          </button>
         </div>
 
-        <FieldList fields={MOCK_FIELDS} />
+        <FieldList fields={allFields} />
       </div>
+
+      {showModal && (
+        <AddFieldModal
+          allFields={allFields}
+          onClose={() => setShowModal(false)}
+          onAdd={handleAdd}
+        />
+      )}
     </div>
   )
 }

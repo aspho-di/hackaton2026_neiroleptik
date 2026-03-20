@@ -1,3 +1,5 @@
+import { IconWarning } from './icons/Icons'
+
 export default function AnomalyAlert({ message }) {
   return (
     <div style={{
@@ -11,7 +13,7 @@ export default function AnomalyAlert({ message }) {
       gap: '10px',
       marginBottom: '16px',
     }}>
-      <span style={{ fontSize: '18px', lineHeight: 1.2, flexShrink: 0 }}>⚠️</span>
+      <IconWarning size={18} color="#b91c1c" />
       <div>
         <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, color: '#b91c1c', fontSize: '14px', marginBottom: '3px' }}>
           Аномалия обнаружена

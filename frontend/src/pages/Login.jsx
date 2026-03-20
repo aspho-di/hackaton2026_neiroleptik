@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { setUser } from '../auth'
 import { MOCK_AGRONOMIST } from '../mockData'
+import { IconWheat } from '../components/icons/Icons'
 
 const inputStyle = {
   width: '100%',
@@ -52,7 +53,9 @@ export default function Login() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ fontSize: '36px', marginBottom: '8px' }}>🌾</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+            <IconWheat size={40} color="var(--color-primary)" />
+          </div>
           <div style={{
             fontFamily: 'Montserrat, sans-serif',
             fontWeight: 700,
