@@ -1,0 +1,546 @@
+definitions:
+  agro-backend_internal_models.Alert:
+    properties:
+      created_at:
+        type: string
+      field_id:
+        type: integer
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      message:
+        type: string
+      severity:
+        description: low, medium, critical
+        type: string
+      user_id:
+        type: integer
+    type: object
+  agro-backend_internal_models.CreateFieldRequest:
+    properties:
+      area_hectares:
+        type: number
+      crop_type:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  agro-backend_internal_models.CreateSensorDataRequest:
+    properties:
+      field_id:
+        type: integer
+      humidity:
+        type: number
+      soil_moisture:
+        type: number
+      temperature:
+        type: number
+    type: object
+  agro-backend_internal_models.Field:
+    properties:
+      area_hectares:
+        type: number
+      created_at:
+        type: string
+      crop_type:
+        type: string
+      id:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  agro-backend_internal_models.Prediction:
+    properties:
+      confidence:
+        type: number
+      created_at:
+        type: string
+      field_id:
+        type: integer
+      id:
+        type: integer
+      irrigation_recommendation:
+        type: number
+      is_anomaly:
+        type: boolean
+      yield_prediction:
+        type: number
+    type: object
+  agro-backend_internal_models.PredictionResponse:
+    properties:
+      prediction:
+        $ref: '#/definitions/agro-backend_internal_models.Prediction'
+      status:
+        type: string
+      warning:
+        type: string
+    type: object
+  agro-backend_internal_models.SensorData:
+    properties:
+      field_id:
+        type: integer
+      humidity:
+        type: number
+      id:
+        type: integer
+      soil_moisture:
+        type: number
+      temperature:
+        type: number
+      timestamp:
+        type: string
+    type: object
+  internal_api_handlers.PredictRequest:
+    properties:
+      field_id:
+        example: 1
+        type: integer
+      latitude:
+        example: 47.2
+        type: number
+      longitude:
+        example: 39.7
+        type: number
+      user_id:
+        example: 1
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/alerts:
+    get:
+      description: Возвращает уведомления пользователя
+      parameters:
+      - description: User ID (по умолчанию 1)
+        in: query
+        name: user_id
+        type: integer
+      - description: Количество записей (по умолчанию 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/agro-backend_internal_models.Alert'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Список уведомлений
+      tags:
+      - alerts
+  /api/v1/alerts/{id}/read:
+    put:
+      description: Помечает уведомление как прочитанное
+      parameters:
+      - description: Alert ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Отметить как прочитанное
+      tags:
+      - alerts
+  /api/v1/alerts/unread:
+    get:
+      description: Возвращает только непрочитанные уведомления пользователя
+      parameters:
+      - description: User ID (по умолчанию 1)
+        in: query
+        name: user_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/agro-backend_internal_models.Alert'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Непрочитанные уведомления
+      tags:
+      - alerts
+  /api/v1/fields:
+    get:
+      description: Возвращает все поля
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/agro-backend_internal_models.Field'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Список полей
+      tags:
+      - fields
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новое сельскохозяйственное поле
+      parameters:
+      - description: Данные поля
+        in: body
+        name: field
+        required: true
+        schema:
+          $ref: '#/definitions/agro-backend_internal_models.CreateFieldRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/agro-backend_internal_models.Field'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать поле
+      tags:
+      - fields
+  /api/v1/fields/{id}:
+    delete:
+      description: Удаляет поле по ID
+      parameters:
+      - description: Field ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить поле
+      tags:
+      - fields
+    get:
+      description: Возвращает поле по ID
+      parameters:
+      - description: Field ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/agro-backend_internal_models.Field'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить поле
+      tags:
+      - fields
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные поля по ID
+      parameters:
+      - description: Field ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные поля
+        in: body
+        name: field
+        required: true
+        schema:
+          $ref: '#/definitions/agro-backend_internal_models.Field'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/agro-backend_internal_models.Field'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновить поле
+      tags:
+      - fields
+  /api/v1/predict:
+    post:
+      consumes:
+      - application/json
+      description: Рассчитывает прогноз урожайности и рекомендацию по поливу на основе
+        данных датчиков и погоды. При аномалии возвращает warning.
+      parameters:
+      - description: Параметры запроса
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api_handlers.PredictRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/agro-backend_internal_models.PredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить прогноз
+      tags:
+      - predictions
+  /api/v1/predictions/{field_id}:
+    get:
+      description: Возвращает историю прогнозов для указанного поля
+      parameters:
+      - description: Field ID
+        in: path
+        name: field_id
+        required: true
+        type: integer
+      - description: Количество записей (по умолчанию 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/agro-backend_internal_models.Prediction'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: История прогнозов
+      tags:
+      - predictions
+  /api/v1/sensors/{field_id}:
+    get:
+      description: Возвращает историю данных датчиков для указанного поля
+      parameters:
+      - description: Field ID
+        in: path
+        name: field_id
+        required: true
+        type: integer
+      - description: Количество записей (по умолчанию 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/agro-backend_internal_models.SensorData'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Данные датчиков поля
+      tags:
+      - sensors
+  /api/v1/sensors/data:
+    post:
+      consumes:
+      - application/json
+      description: Принимает данные с датчиков поля. При аномалии создаёт алерт и
+        отправляет уведомление в Telegram.
+      parameters:
+      - description: Данные датчиков
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/agro-backend_internal_models.CreateSensorDataRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Сохранить данные датчиков
+      tags:
+      - sensors
+  /health:
+    get:
+      description: Проверка что сервис запущен
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - system
+  /ready:
+    get:
+      description: Проверка готовности — БД и Redis доступны
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness check
+      tags:
+      - system
+swagger: "2.0"
