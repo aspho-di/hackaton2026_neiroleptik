@@ -108,7 +108,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
   const [form, setForm] = useState({
     title: '',
     number: '',
-    crop: 'пшеница',
+    crop: 'wheat',
     district: '',
     area: '',
     temp: '',
@@ -283,7 +283,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <Field label="Культура">
                 <select style={inputStyle} {...focusHandlers} name="crop" value={form.crop} onChange={handleChange}>
-                  {CROPS.map(c => <option key={c} value={c}>{c}</option>)}
+                  {CROPS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
               </Field>
 

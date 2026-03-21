@@ -15,6 +15,7 @@ import PrecipChart from '../components/PrecipChart'
 import StatusBadge from '../components/StatusBadge'
 import SensorForm from '../components/SensorForm'
 import CropSVG from '../components/CropSVG'
+import { CROP_LABEL } from '../constants/districts'
 
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const ET0  = 4.0
@@ -344,7 +345,7 @@ export default function FieldDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <h1 style={{ fontSize: 20, color: 'var(--color-text)', marginBottom: 3 }}>{field.name}</h1>
-            <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ID поля: {field.field_id} · {field.crop}</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ID поля: {field.field_id} · {CROP_LABEL[field.crop] ?? field.crop}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {forecast && <StatusBadge status={forecast.status} confidence={forecast.confidence} />}
@@ -454,7 +455,7 @@ export default function FieldDetail() {
                   </div>
                   <div style={{ marginBottom: 14, paddingRight: 96 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 2 }}>Осадки на 7 дней</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{field.crop}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{CROP_LABEL[field.crop] ?? field.crop}</div>
                   </div>
                   <PrecipChart data={weatherData?.precip_forecast_7days ?? forecast.precip_forecast_7days} height={240} />
                   {weatherData && (

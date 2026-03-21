@@ -3,6 +3,7 @@ import StatusBadge from '../components/StatusBadge'
 import { useFields } from '../hooks/useFields'
 import { getMockForecastForField } from '../mockData'
 import { IconWarning } from '../components/icons/Icons'
+import { CROP_LABEL } from '../constants/districts'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   ResponsiveContainer, Legend, Tooltip,
@@ -116,7 +117,7 @@ function CompareTable({ items }) {
             {items.map(({ field }, i) => (
               <th key={field.field_id} style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 700, color: FIELD_COLORS[i], borderBottom: '1px solid var(--color-border)' }}>
                 <div>{field.name.split('—')[0].trim()}</div>
-                <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{field.crop}</div>
+                <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-text-muted)' }}>{CROP_LABEL[field.crop] ?? field.crop}</div>
               </th>
             ))}
           </tr>

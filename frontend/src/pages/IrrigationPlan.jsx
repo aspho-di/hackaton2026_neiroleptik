@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { loadSavedFields } from '../components/AddFieldModal'
+import { CROP_LABEL } from '../constants/districts'
 
 const STATUS_PRIORITY = { anomaly: 1, warning: 2, normal: 3 }
 const STATUS_LABELS   = { anomaly: 'Аномалия', warning: 'Внимание', normal: 'Норма' }
@@ -123,7 +124,7 @@ export default function IrrigationPlan() {
                   return (
                     <tr key={f.field_id} style={{ borderBottom: '1px solid var(--color-border)', background: idx === 0 ? '#fff1f0' : 'transparent' }}>
                       <td style={{ padding: '10px 14px', fontWeight: 500 }}>{f.name}</td>
-                      <td style={{ padding: '10px 14px', textTransform: 'capitalize', color: 'var(--color-text-muted)' }}>{f.crop || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--color-text-muted)' }}>{CROP_LABEL[f.crop] ?? f.crop ?? '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{ color: STATUS_COLORS[f.status], fontWeight: 600, fontSize: 12 }}>
                           ● {STATUS_LABELS[f.status]}
