@@ -84,52 +84,53 @@ function getTransform(status) {
 // ── Corn (кукуруза) — початок на вершине стебля, листья по бокам, метёлка сверху
 function CornCrop({ p, status }) {
   const t = getTransform(status)
+  // Cob: top y=16, bottom y=38 (22px tall, 14px wide) — comparable to sunflower head
   return (
     <g transform={t}>
       {/* Main stem — from ground to cob base */}
-      <line x1="60" y1="88" x2="60" y2="52" stroke={p.stem} strokeWidth="4" />
+      <line x1="60" y1="88" x2="60" y2="38" stroke={p.stem} strokeWidth="4" />
 
-      {/* Tassel — fan of strands above cob */}
-      <line x1="60" y1="16" x2="49" y2="5"  stroke={p.stem} strokeWidth="1.6" />
-      <line x1="60" y1="16" x2="54" y2="3"  stroke={p.stem} strokeWidth="1.6" />
-      <line x1="60" y1="16" x2="60" y2="2"  stroke={p.stem} strokeWidth="1.6" />
-      <line x1="60" y1="16" x2="66" y2="3"  stroke={p.stem} strokeWidth="1.6" />
-      <line x1="60" y1="16" x2="71" y2="5"  stroke={p.stem} strokeWidth="1.6" />
-      <line x1="60" y1="18" x2="51" y2="9"  stroke={p.stem} strokeWidth="1.1" opacity="0.5" />
-      <line x1="60" y1="18" x2="69" y2="9"  stroke={p.stem} strokeWidth="1.1" opacity="0.5" />
+      {/* Tassel — fan above cob */}
+      <line x1="60" y1="16" x2="51" y2="6"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="55" y2="4"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="60" y2="3"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="65" y2="4"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="69" y2="6"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="18" x2="53" y2="10" stroke={p.stem} strokeWidth="1.0" opacity="0.5" />
+      <line x1="60" y1="18" x2="67" y2="10" stroke={p.stem} strokeWidth="1.0" opacity="0.5" />
 
-      {/* Husk leaves wrapping the base of the cob */}
-      <path d="M60,52 Q46,57 44,70 Q54,63 60,52Z" fill={p.leaf} opacity="0.9" />
-      <path d="M60,52 Q74,57 76,70 Q66,63 60,52Z" fill={p.leaf} opacity="0.9" />
-      <path d="M60,52 Q40,53 38,67 Q52,61 60,52Z" fill={p.leaf} opacity="0.65" />
-      <path d="M60,52 Q80,53 82,67 Q68,61 60,52Z" fill={p.leaf} opacity="0.65" />
+      {/* Husk leaves at cob base */}
+      <path d="M60,38 Q50,42 48,52 Q56,46 60,38Z" fill={p.leaf} opacity="0.9" />
+      <path d="M60,38 Q70,42 72,52 Q64,46 60,38Z" fill={p.leaf} opacity="0.9" />
+      <path d="M60,38 Q44,40 42,51 Q54,45 60,38Z" fill={p.leaf} opacity="0.6" />
+      <path d="M60,38 Q76,40 78,51 Q66,45 60,38Z" fill={p.leaf} opacity="0.6" />
 
-      {/* Cob body — centered on stem, top of stalk */}
-      <rect x="51" y="16" width="18" height="37" rx="8" fill={p.head} />
+      {/* Cob body — 14×22px */}
+      <rect x="53" y="16" width="14" height="22" rx="6" fill={p.head} />
 
       {/* Kernel rows */}
-      {[21,26,31,36,41,46].map(y => (
-        <line key={y} x1="51" y1={y} x2="69" y2={y}
-              stroke={p.grain} strokeWidth="1.1" opacity="0.55" />
+      {[20,24,28,32,36].map(y => (
+        <line key={y} x1="53" y1={y} x2="67" y2={y}
+              stroke={p.grain} strokeWidth="1.0" opacity="0.55" />
       ))}
       {/* Kernel columns */}
-      {[55,59,63,67].map(x => (
-        <line key={x} x1={x} y1="16" x2={x} y2="53"
+      {[57,60,63].map(x => (
+        <line key={x} x1={x} y1="16" x2={x} y2="38"
               stroke={p.grain} strokeWidth="0.7" opacity="0.28" />
       ))}
 
       {/* Cob top cap */}
-      <ellipse cx="60" cy="17" rx="9" ry="3"   fill={p.head} opacity="0.9" />
+      <ellipse cx="60" cy="17" rx="7" ry="2.5" fill={p.head} opacity="0.9" />
       {/* Cob bottom */}
-      <ellipse cx="60" cy="53" rx="9" ry="3"   fill={p.head} opacity="0.7" />
+      <ellipse cx="60" cy="38" rx="7" ry="2.5" fill={p.head} opacity="0.7" />
 
-      {/* Side leaves on stem — right */}
-      <path d="M60,64 C82,57 100,62 102,73 C86,67 72,66 60,64Z" fill={p.leaf} />
-      <line x1="60" y1="64" x2="98" y2="70" stroke={p.stem} strokeWidth="0.9" opacity="0.35" />
+      {/* Side leaf — right */}
+      <path d="M60,56 C82,49 100,54 102,65 C86,59 72,58 60,56Z" fill={p.leaf} />
+      <line x1="60" y1="56" x2="98" y2="62" stroke={p.stem} strokeWidth="0.9" opacity="0.35" />
 
-      {/* Side leaves on stem — left */}
-      <path d="M60,76 C38,69 16,74 14,85 C30,79 48,78 60,76Z" fill={p.leaf} />
-      <line x1="60" y1="76" x2="18" y2="82" stroke={p.stem} strokeWidth="0.9" opacity="0.35" />
+      {/* Side leaf — left */}
+      <path d="M60,70 C38,63 16,68 14,79 C30,73 48,72 60,70Z" fill={p.leaf} />
+      <line x1="60" y1="70" x2="18" y2="76" stroke={p.stem} strokeWidth="0.9" opacity="0.35" />
     </g>
   )
 }
