@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
   Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { getMockForecastForField } from '../mockData'
-import { fetchForecast, fetchCurrentWeather, deleteField } from '../api/client'
+import { fetchForecast, fetchCurrentWeather, deleteField, fetchSensorData, validateSensorData, fetchIrrigationRecommend, saveSensorData } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning } from '../components/icons/Icons'
@@ -262,6 +262,187 @@ function WhatIfSection({ baseYield }) {
   )
 }
 
+// ── ApiSensorPanel ────────────────────────────────────────────────────────────
+const API_FIELDS = [
+  { key: 'humidity',         label: 'Влажность воздуха', unit: '%' },
+  { key: 'soil_moisture',    label: 'Влажность почвы',   unit: '%' },
+  { key: 'soil_temperature', label: 'Темп. почвы',       unit: '°C' },
+  { key: 'temperature',      label: 'Темп. воздуха',     unit: '°C' },
+  { key: 'wind_speed',       label: 'Ветер',             unit: 'м/с' },
+]
+
+function ApiSensorPanel({ fieldId, crop, onResult }) {
+  const [data,    setData]    = useState(null)   // latest sensor record
+  const [loading, setLoading] = useState(false)
+  const [calcLoading, setCalcLoading] = useState(false)
+  const [error,   setError]   = useState(null)
+  const [result,  setResult]  = useState(null)
+  const [fetchedAt, setFetchedAt] = useState(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetchSensorData(fieldId)
+      const record = Array.isArray(res) ? res[res.length - 1] : res
+      if (!record) throw new Error('empty')
+      setData(record)
+      setFetchedAt(new Date())
+    } catch {
+      setError('Нет данных с датчика. Проверьте подключение к API (:8080).')
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [fieldId])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  async function handleCalc() {
+    if (!data) return
+    setCalcLoading(true)
+    setResult(null)
+    try {
+      const soil_moisture    = data.soil_moisture ?? 0
+      const soil_temperature = data.soil_temperature ?? data.temperature ?? 20
+      const air_temperature  = data.temperature ?? 20
+      const wind_speed       = data.wind_speed ?? 0
+      const humidity         = data.humidity ?? 0
+
+      await validateSensorData({ field_id: fieldId, crop, soil_moisture_percent: soil_moisture, soil_temperature, air_temperature, wind_speed })
+      const irrigation = await fetchIrrigationRecommend(fieldId, crop, soil_moisture, soil_temperature, air_temperature, [], wind_speed)
+      setResult(irrigation)
+      onResult?.({ irrigation, soil_moisture, air_temperature, wind_speed })
+
+      try {
+        const key  = `sensor_history_${fieldId}`
+        const prev = JSON.parse(localStorage.getItem(key) || '[]')
+        prev.push({ ts: new Date().toISOString(), humidity, soil_moisture, soil_temperature, air_temperature, wind_speed, is_anomaly: irrigation?.is_anomaly ?? false, irrigate: irrigation?.irrigate ?? false, amount_mm: irrigation?.amount_mm ?? null })
+        localStorage.setItem(key, JSON.stringify(prev.slice(-50)))
+      } catch {}
+    } catch {
+      setError('Не удалось выполнить расчёт.')
+    } finally {
+      setCalcLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '20px 24px' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)' }}>
+            Данные с датчика
+          </span>
+          <span style={{
+            fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600,
+            background: data ? '#f0fdf4' : error ? '#fef2f2' : '#fffbeb',
+            color: data ? 'var(--color-normal)' : error ? 'var(--color-anomaly)' : 'var(--color-warning)',
+          }}>
+            {loading ? 'Загрузка...' : data ? 'Получены' : error ? 'Нет связи' : '—'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {fetchedAt && !loading && (
+            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+              обновлено в {fetchedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+          <button
+            onClick={fetchData} disabled={loading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+              border: '1px solid var(--color-border)', background: 'var(--color-surface)',
+              color: 'var(--color-text-muted)', cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1, transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.color = 'var(--color-accent)' } }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)' }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Обновить
+          </button>
+        </div>
+      </div>
+
+      {/* Values grid */}
+      {data ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
+          {API_FIELDS.map(f => {
+            const val = data[f.key]
+            return (
+              <div key={f.key} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, marginBottom: 4 }}>{f.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: val != null ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+                  {val != null ? `${val}${f.unit}` : '—'}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : error ? (
+        <div style={{ padding: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: 'var(--color-anomaly)', marginBottom: 16 }}>
+          {error}
+        </div>
+      ) : (
+        <div style={{ padding: '16px', background: 'var(--color-bg)', borderRadius: 8, fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16, textAlign: 'center' }}>
+          Загрузка данных датчика...
+        </div>
+      )}
+
+      {/* Calc button */}
+      {data && (
+        <button
+          onClick={handleCalc} disabled={calcLoading}
+          style={{
+            background: calcLoading ? 'var(--color-text-muted)' : 'var(--color-accent)',
+            color: '#fff', border: 'none', borderRadius: 8,
+            padding: '10px 28px', fontSize: 14, fontWeight: 600,
+            fontFamily: 'Montserrat, sans-serif',
+            cursor: calcLoading ? 'not-allowed' : 'pointer',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => { if (!calcLoading) e.currentTarget.style.background = 'var(--color-accent-hover)' }}
+          onMouseLeave={e => { if (!calcLoading) e.currentTarget.style.background = 'var(--color-accent)' }}
+        >
+          {calcLoading ? 'Расчёт...' : 'Рассчитать'}
+        </button>
+      )}
+
+      {/* Result */}
+      {result && (
+        <div style={{ marginTop: 20, background: 'var(--color-accent-light)', border: '1px solid var(--color-border)', borderRadius: 10, padding: 16 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12, fontFamily: 'Montserrat, sans-serif', fontSize: 14, color: 'var(--color-text)' }}>
+            Рекомендация по поливу
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+            <MiniStat label="Нужен полив" value={result.irrigate ? '✓ Да' : '✗ Нет'} color={result.irrigate ? 'var(--color-normal)' : 'var(--color-anomaly)'} />
+            {result.irrigate && <MiniStat label="Объём" value={`${result.amount_mm} мм`} />}
+            {result.when && <MiniStat label="Дата" value={result.when} />}
+            {result.rain_next_days_mm != null && <MiniStat label="Осадки 2–3 дня" value={`${result.rain_next_days_mm} мм`} />}
+          </div>
+          {result.reason && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>{result.reason}</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MiniStat({ label, value, color }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontWeight: 700, fontSize: 15, fontFamily: 'Montserrat, sans-serif', color: color || 'var(--color-text)' }}>{value}</div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function FieldDetail() {
   const { id } = useParams()
@@ -276,6 +457,7 @@ export default function FieldDetail() {
   const [weatherData,     setWeatherData]     = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteError,     setDeleteError]     = useState('')
+  const [dataMode,        setDataMode]        = useState('manual') // 'manual' | 'api'
 
   async function handleDelete() {
     await deleteField(field.field_id)
@@ -469,8 +651,39 @@ export default function FieldDetail() {
                   />
                 </div>
 
-                {/* Sensor form */}
-                <SensorForm fieldId={fieldId} crop={field?.crop ?? 'wheat'} onResult={setSensorResult} />
+                {/* Data mode toggle + sensor panel */}
+                <div>
+                  {/* Toggle */}
+                  <div style={{
+                    display: 'inline-flex', borderRadius: 8, overflow: 'hidden',
+                    border: '1px solid var(--color-border)', marginBottom: 12,
+                  }}>
+                    {[
+                      { key: 'manual', label: '✏ Вручную' },
+                      { key: 'api',    label: '⚡ С датчика (API)' },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setDataMode(opt.key)}
+                        style={{
+                          padding: '7px 16px', fontSize: 12, fontWeight: 600,
+                          border: 'none', cursor: 'pointer',
+                          background: dataMode === opt.key ? 'var(--color-accent)' : 'var(--color-surface)',
+                          color: dataMode === opt.key ? '#fff' : 'var(--color-text-muted)',
+                          transition: 'all 0.15s',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {dataMode === 'manual'
+                    ? <SensorForm fieldId={fieldId} crop={field?.crop ?? 'wheat'} onResult={setSensorResult} />
+                    : <ApiSensorPanel fieldId={fieldId} crop={field?.crop ?? 'wheat'} onResult={setSensorResult} />
+                  }
+                </div>
 
                 {/* What-if */}
                 <WhatIfSection baseYield={forecast.yield_ctha} />
