@@ -136,6 +136,25 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
 
       setResult(irrigationData)
       onResult?.({ irrigation: irrigationData, soil_moisture, air_temperature, wind_speed })
+
+      // Save to localStorage for History tab
+      try {
+        const key = `sensor_history_${fieldId}`
+        const prev = JSON.parse(localStorage.getItem(key) || '[]')
+        prev.push({
+          ts: new Date().toISOString(),
+          humidity,
+          soil_moisture,
+          soil_temperature,
+          air_temperature,
+          wind_speed,
+          is_anomaly: irrigationData?.is_anomaly ?? false,
+          irrigate:   irrigationData?.irrigate ?? false,
+          amount_mm:  irrigationData?.amount_mm ?? null,
+        })
+        localStorage.setItem(key, JSON.stringify(prev.slice(-50)))
+      } catch {}
+
       showToast('Данные датчика сохранены')
 
       if (irrigationData?.irrigate === true) {
