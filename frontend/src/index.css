@@ -72,36 +72,31 @@ input, select, textarea {
 
 /* Скроллбар для webkit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
+  background: transparent;
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track-piece,
+::-webkit-scrollbar-corner {
   background: transparent;
   border: none;
   box-shadow: none;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #a8d5a2 0%, #4caf50 50%, #1a4d2e 100%);
+  background: #4caf50;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #4caf50 0%, #1a4d2e 100%);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
+  background: #1a4d2e;
 }
 
 ::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;
-}
-
-::-webkit-scrollbar-track-piece {
-  background: transparent;
 }
 
 /* Firefox */
