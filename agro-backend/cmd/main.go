@@ -37,6 +37,7 @@ import (
 
 func main() {
 	_ = godotenv.Load()
+	log.Printf("DATABASE_URL = %q", os.Getenv("DATABASE_URL"))
 
 	cfg := configs.LoadConfig()
 
