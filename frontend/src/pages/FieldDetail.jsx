@@ -4,8 +4,8 @@ import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
   Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { getMockForecastForField } from '../mockData'
-import { fetchForecast, fetchCurrentWeather } from '../api/client'
+import { getMockForecastForField, MOCK_FIELDS } from '../mockData'
+import { fetchForecast, fetchCurrentWeather, deleteField } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning } from '../components/icons/Icons'
@@ -267,10 +267,26 @@ export default function FieldDetail() {
 
   const { fields: allFields, loading: fieldsLoading } = useFields()
   const field = allFields.find(f => f.field_id === fieldId)
-  const [forecast,     setForecast]     = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [sensorResult, setSensorResult] = useState(null)
-  const [weatherData,  setWeatherData]  = useState(null)
+  const [forecast,        setForecast]        = useState(null)
+  const [loading,         setLoading]         = useState(true)
+  const [sensorResult,    setSensorResult]    = useState(null)
+  const [weatherData,     setWeatherData]     = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteError,     setDeleteError]     = useState('')
+
+  const isMockField = MOCK_FIELDS.some(f => f.field_id === fieldId)
+
+  async function handleDelete() {
+    if (isMockField) {
+      setDeleteError('Демонстрационные поля нельзя удалить')
+      return
+    }
+    await deleteField(field.field_id)
+    const saved   = JSON.parse(localStorage.getItem('fields') || '[]')
+    const updated = saved.filter(f => f.field_id !== field.field_id)
+    localStorage.setItem('fields', JSON.stringify(updated))
+    navigate('/')
+  }
 
   useEffect(() => {
     if (fieldsLoading) return
@@ -345,8 +361,61 @@ export default function FieldDetail() {
             <h1 style={{ fontSize: 20, color: 'var(--color-text)', marginBottom: 3 }}>{field.name}</h1>
             <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ID поля: {field.field_id} · {field.crop}</div>
           </div>
-          {forecast && <StatusBadge status={forecast.status} confidence={forecast.confidence} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {forecast && <StatusBadge status={forecast.status} confidence={forecast.confidence} />}
+            <button
+              onClick={() => { setDeleteError(''); setShowDeleteModal(true) }}
+              style={{
+                background: 'none', border: '1px solid #fca5a5', borderRadius: 8,
+                padding: '6px 14px', fontSize: 13, fontWeight: 600,
+                color: 'var(--color-anomaly)', cursor: 'pointer',
+                fontFamily: 'Montserrat, sans-serif', transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+            >
+              Удалить участок
+            </button>
+          </div>
         </div>
+
+        {/* Delete modal */}
+        {showDeleteModal && (
+          <div
+            onClick={() => setShowDeleteModal(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxWidth: 440, width: '100%', padding: '28px 28px 24px' }}
+            >
+              <h2 style={{ fontSize: 17, color: 'var(--color-text)', marginBottom: 12 }}>Удалить участок?</h2>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: 20 }}>
+                Вы уверены, что хотите удалить <strong style={{ color: 'var(--color-text)' }}>{field.name}</strong>?{' '}
+                Это действие необратимо.
+              </p>
+              {deleteError && (
+                <div style={{ fontSize: 13, color: 'var(--color-anomaly)', marginBottom: 16 }}>{deleteError}</div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleDelete}
+                  style={{ background: '#ef4444', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', transition: 'background 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#dc2626' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ef4444' }}
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showAlert && <AnomalyAlert message={sensorResult.irrigation?.message} anomalies={sensorResult.irrigation?.anomalies} />}
 
