@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Python
 __pycache__/
 *.py[cod]
@@ -41,7 +41,7 @@ Thumbs.db
 
 # Логи
 *.log
-=======
+
 .claude/
 CLAUDE.md
 >>>>>>> origin/Ai_2
