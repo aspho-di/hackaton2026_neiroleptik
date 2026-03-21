@@ -58,7 +58,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^http:\/\/localhost:8080\/api\/.*/i,
+              urlPattern: /^https:\/\/hackaton2026neiroleptik-production\.up\.railway\.app\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
