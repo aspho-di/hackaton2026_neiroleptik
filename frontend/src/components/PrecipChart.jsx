@@ -29,9 +29,9 @@ export default function PrecipChart({ data, height = 180 }) {
     mm,
   }))
 
-  const total = vals.reduce((s, v) => s + v, 0).toFixed(1)
-  const max   = vals.length ? Math.max(...vals).toFixed(1) : 0
-  const min   = vals.length ? Math.min(...vals).toFixed(1) : 0
+  const total = +(vals.reduce((s, v) => s + v, 0).toFixed(1))
+  const max   = vals.length ? +(Math.max(...vals).toFixed(1)) : 0
+  const min   = vals.length ? +(Math.min(...vals).toFixed(1)) : 0
 
   return (
     <div>

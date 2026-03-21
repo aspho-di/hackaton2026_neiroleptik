@@ -215,7 +215,7 @@ export default function Compare() {
       const field    = allFields.find(f => f.field_id === id)
       const forecast = getMockForecastForField(id)
       const sensors  = FIELD_SENSORS[id] || { soil_moisture: 45, air_temp: 22 }
-      const precip   = +(forecast?.precip_forecast_7days ?? []).reduce((s, v) => s + v, 0).toFixed(1)
+      const precip   = +((forecast?.precip_forecast_7days ?? []).filter(v => v != null).reduce((s, v) => s + v, 0).toFixed(1))
       return { field, forecast, sensors, precip }
     })
     setCompared(result)
