@@ -365,7 +365,7 @@ export default function History() {
           value={anomalyCount}
           sub={predictions.length > 0 ? `из ${predictions.length} записей` : 'нет данных'}
           color={anomalyCount > 0 ? 'var(--color-anomaly)' : 'var(--color-normal)'}
-          bg={anomalyCount > 0 ? 'rgba(239,68,68,0.04)' : undefined}
+          bg={anomalyCount > 0 ? '#fef2f2' : undefined}
         />
         <StatCard
           label="Показаний датчика"
@@ -491,7 +491,7 @@ export default function History() {
               </thead>
               <tbody>
                 {[...sensorHistory].reverse().map((r, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--color-border)', background: r.is_anomaly ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
+                  <tr key={i} style={{ borderBottom: '1px solid var(--color-border)', background: r.is_anomaly ? '#fef2f2' : 'transparent' }}>
                     <td style={{ padding: '9px 12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(r.ts)}</td>
                     <td style={{ padding: '9px 12px' }}>{r.humidity ?? '—'} %</td>
                     <td style={{ padding: '9px 12px', color: r.soil_moisture < 20 ? '#ef4444' : r.soil_moisture > 80 ? '#f59e0b' : 'inherit', fontWeight: 500 }}>
@@ -524,7 +524,7 @@ export default function History() {
 
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+        background: '#fffbeb', border: '1px solid #fde68a',
         borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 12,
         color: 'var(--color-text-muted)',
       }}>

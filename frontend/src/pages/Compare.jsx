@@ -50,7 +50,7 @@ function buildRadarData(items) {
 
 // Ячейка с подсветкой best/worst
 function Cell({ value, isBest, isWorst, children }) {
-  const bg = isBest ? 'rgba(76,175,80,0.12)' : isWorst ? 'rgba(239,68,68,0.10)' : 'transparent'
+  const bg = isBest ? '#f0fdf4' : isWorst ? '#fef2f2' : 'transparent'
   return (
     <td style={{
       padding: '10px 16px', textAlign: 'center', fontSize: 13,

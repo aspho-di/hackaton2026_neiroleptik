@@ -28,9 +28,9 @@ const FILTER_TABS = [
 ]
 
 const SEV = {
-  critical: { bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.25)',  accent: 'var(--color-anomaly)', text: 'var(--color-anomaly)' },
-  warning:  { bg: 'rgba(251,191,36,0.07)',   border: 'rgba(251,191,36,0.25)', accent: 'var(--color-warning)', text: 'var(--color-warning)' },
-  info:     { bg: 'rgba(59,130,246,0.07)',   border: 'rgba(59,130,246,0.25)', accent: '#3b82f6',              text: '#3b82f6' },
+  critical: { bg: '#fef2f2', border: '#fecaca', accent: 'var(--color-anomaly)', text: 'var(--color-anomaly)' },
+  warning:  { bg: '#fffbeb', border: '#fde68a', accent: 'var(--color-warning)', text: 'var(--color-warning)' },
+  info:     { bg: '#eff6ff', border: '#bfdbfe', accent: '#3b82f6',              text: '#3b82f6' },
 }
 
 function getReadIds() {
@@ -250,7 +250,7 @@ export default function Alerts() {
                         cursor: 'pointer', color: 'var(--color-text-muted)',
                         transition: 'all 0.15s', flexShrink: 0,
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-anomaly)'; e.currentTarget.style.color = 'var(--color-anomaly)'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-anomaly)'; e.currentTarget.style.color = 'var(--color-anomaly)'; e.currentTarget.style.background = '#fef2f2' }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'var(--color-surface)' }}
                     >
                       <IconX size={13} color="currentColor" />

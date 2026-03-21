@@ -3,8 +3,8 @@ import { IconWarning } from './icons/Icons'
 export default function AnomalyAlert({ message, anomalies }) {
   return (
     <div style={{
-      background: 'rgba(239,68,68,0.08)',
-      border: '1px solid rgba(239,68,68,0.25)',
+      background: '#fef2f2',
+      border: '1px solid #fecaca',
       borderLeft: '4px solid var(--color-anomaly)',
       borderRadius: '8px',
       padding: '12px 16px',

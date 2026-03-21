@@ -269,8 +269,8 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 14px', marginBottom: 12,
-              background: 'rgba(239,68,68,0.07)',
-              border: '1px solid rgba(239,68,68,0.3)',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
               borderRadius: 8, fontSize: 13,
               color: 'var(--color-anomaly)', fontWeight: 600,
             }}>

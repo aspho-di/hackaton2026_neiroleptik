@@ -1,7 +1,7 @@
 const BADGE_CONFIG = {
-  normal:  { bg: 'rgba(76,175,80,0.15)',  color: 'var(--color-normal)',  label: 'Норма',            dot: 'var(--color-normal)'  },
-  warning: { bg: 'rgba(245,158,11,0.15)', color: 'var(--color-warning)', label: 'Требует внимания', dot: 'var(--color-warning)' },
-  anomaly: { bg: 'rgba(239,68,68,0.15)',  color: 'var(--color-anomaly)', label: 'Аномалия',         dot: 'var(--color-anomaly)' },
+  normal:  { bg: '#f0fdf4', color: 'var(--color-normal)',  label: 'Норма',            dot: 'var(--color-normal)'  },
+  warning: { bg: '#fffbeb', color: 'var(--color-warning)', label: 'Требует внимания', dot: 'var(--color-warning)' },
+  anomaly: { bg: '#fef2f2', color: 'var(--color-anomaly)', label: 'Аномалия',         dot: 'var(--color-anomaly)' },
 }
 
 export default function StatusBadge({ status, confidence }) {
