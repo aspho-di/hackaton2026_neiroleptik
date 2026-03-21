@@ -5,25 +5,27 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { getMockForecastForField } from '../mockData'
-import { fetchForecast, fetchCurrentWeather } from '../api/client'
+import { fetchForecast, fetchCurrentWeather, deleteField } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning } from '../components/icons/Icons'
+import FieldMap from '../components/FieldMap'
+import Toast from '../components/Toast'
 import WheatEmoji from '../components/icons/WheatEmoji'
-import Navbar from '../components/Navbar'
 import AnomalyAlert from '../components/AnomalyAlert'
 import PrecipChart from '../components/PrecipChart'
 import StatusBadge from '../components/StatusBadge'
 import SensorForm from '../components/SensorForm'
 import CropSVG from '../components/CropSVG'
+import { CROP_LABEL } from '../constants/districts'
 
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const ET0  = 4.0
 
 const STATUS_GRADIENT = {
-  normal:  'linear-gradient(135deg, #f0faf0 0%, #ffffff 60%)',
-  warning: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 60%)',
-  anomaly: 'linear-gradient(135deg, #fff1f0 0%, #ffffff 60%)',
+  normal:  'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, transparent 60%)',
+  warning: 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, transparent 60%)',
+  anomaly: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 60%)',
 }
 
 // ── Water balance ─────────────────────────────────────────────────────────────
@@ -31,8 +33,8 @@ function BalanceTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const v = payload[0].value
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}>
-      <div style={{ fontWeight: 600, marginBottom: 2, color: '#1c2b1e' }}>{label}</div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}>
+      <div style={{ fontWeight: 600, marginBottom: 2, color: 'var(--color-text)' }}>{label}</div>
       <div style={{ color: v >= 0 ? '#16a34a' : '#dc2626' }}>{v > 0 ? '+' : ''}{v} мм</div>
     </div>
   )
@@ -50,7 +52,7 @@ function WaterBalanceChart({ precip }) {
 
   return (
     <div style={{
-      background: avg >= 0 ? 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 60%)' : 'linear-gradient(135deg, #fff1f0 0%, #ffffff 60%)',
+      background: avg >= 0 ? 'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, transparent 60%)' : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 60%)',
       border: '1px solid var(--color-border)',
       borderRadius: 'var(--radius-card)',
       boxShadow: 'var(--shadow-card)',
@@ -139,7 +141,7 @@ function YieldCard({ forecast, status }) {
           <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2, marginBottom: 10 }}>
             от {yield_min} до {yield_max} ц/га
           </div>
-          <div style={{ position: 'relative', height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 12 }}>
+          <div style={{ position: 'relative', height: 8, background: 'var(--color-border)', borderRadius: 4, marginBottom: 12 }}>
             <div style={{
               position: 'absolute', left: `${minPct}%`, width: `${maxPct - minPct}%`,
               height: '100%', background: barColor, borderRadius: 4, opacity: 0.55,
@@ -148,7 +150,7 @@ function YieldCard({ forecast, status }) {
               position: 'absolute', left: `${dotPct}%`, top: '50%',
               transform: 'translate(-50%, -50%)',
               width: 14, height: 14, borderRadius: '50%',
-              background: barColor, border: '2px solid #fff',
+              background: barColor, border: '2px solid var(--color-surface)',
               boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
             }} />
           </div>
@@ -176,8 +178,9 @@ function WhatIfSection({ baseYield }) {
 
   const precipEffect   = (precipChange / 100) * 8
   const tempEffect     = tempChange * (-1.2)
-  const adjustedYield  = +(baseYield + precipEffect + tempEffect).toFixed(1)
-  const delta          = +(adjustedYield - baseYield).toFixed(1)
+  const base           = baseYield ?? 0
+  const adjustedYield  = +(base + precipEffect + tempEffect).toFixed(1)
+  const delta          = +(adjustedYield - base).toFixed(1)
   const deltaColor     = delta >= 0 ? 'var(--color-normal)' : 'var(--color-anomaly)'
 
   return (
@@ -267,10 +270,20 @@ export default function FieldDetail() {
 
   const { fields: allFields, loading: fieldsLoading } = useFields()
   const field = allFields.find(f => f.field_id === fieldId)
-  const [forecast,     setForecast]     = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [sensorResult, setSensorResult] = useState(null)
-  const [weatherData,  setWeatherData]  = useState(null)
+  const [forecast,        setForecast]        = useState(null)
+  const [loading,         setLoading]         = useState(true)
+  const [sensorResult,    setSensorResult]    = useState(null)
+  const [weatherData,     setWeatherData]     = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteError,     setDeleteError]     = useState('')
+
+  async function handleDelete() {
+    await deleteField(field.field_id)
+    const saved   = JSON.parse(localStorage.getItem('fields') || '[]')
+    const updated = saved.filter(f => f.field_id !== field.field_id)
+    localStorage.setItem('fields', JSON.stringify(updated))
+    navigate('/dashboard')
+  }
 
   useEffect(() => {
     if (fieldsLoading) return
@@ -282,14 +295,21 @@ export default function FieldDetail() {
     const lon = field?.longitude ?? 40.31
 
     async function load() {
-      const [forecastData, weather] = await Promise.all([
-        fetchForecast(fieldId, lat, lon),
-        fetchCurrentWeather(lat, lon),
-      ])
-      if (!cancelled) {
-        setForecast(forecastData ?? getMockForecastForField(fieldId))
-        setWeatherData(weather)
-        setLoading(false)
+      try {
+        const [forecastData, weather] = await Promise.all([
+          fetchForecast(fieldId, lat, lon),
+          fetchCurrentWeather(lat, lon),
+        ])
+        if (!cancelled) {
+          setForecast(forecastData ?? getMockForecastForField(fieldId))
+          setWeatherData(weather)
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setForecast(getMockForecastForField(fieldId))
+          setLoading(false)
+        }
       }
     }
 
@@ -299,26 +319,29 @@ export default function FieldDetail() {
 
   if (fieldsLoading) {
     return (
-      <>
-        <Navbar />
-        <div style={{ textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
-          Загрузка...
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[48, 300, 160].map((h, i) => (
+            <div key={i} style={{
+              height: h, borderRadius: 'var(--radius-card)',
+              background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-accent-light) 50%, var(--color-border) 75%)',
+              backgroundSize: '400% 100%',
+              animation: 'shimmer 1.4s infinite',
+            }} />
+          ))}
         </div>
-      </>
+      </div>
     )
   }
 
   if (!field) {
     return (
-      <>
-        <Navbar />
-        <div style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-          Поле не найдено.{' '}
-          <button onClick={() => navigate('/')} style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-            На главную
-          </button>
-        </div>
-      </>
+      <div style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+        Поле не найдено.{' '}
+        <button onClick={() => navigate('/dashboard')} style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+          На главную
+        </button>
+      </div>
     )
   }
 
@@ -330,12 +353,10 @@ export default function FieldDetail() {
 
   return (
     <>
-      <Navbar />
-
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
 
         {/* Back */}
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
+        <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
           ← Все поля
         </button>
 
@@ -343,16 +364,77 @@ export default function FieldDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <h1 style={{ fontSize: 20, color: 'var(--color-text)', marginBottom: 3 }}>{field.name}</h1>
-            <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ID поля: {field.field_id} · {field.crop}</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ID поля: {field.field_id} · {CROP_LABEL[field.crop] ?? field.crop}</div>
           </div>
-          {forecast && <StatusBadge status={forecast.status} confidence={forecast.confidence} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {forecast && <StatusBadge status={forecast.status} confidence={forecast.confidence} />}
+            <button
+              onClick={() => { setDeleteError(''); setShowDeleteModal(true) }}
+              style={{
+                background: 'none', border: '1px solid #fca5a5', borderRadius: 8,
+                padding: '6px 14px', fontSize: 13, fontWeight: 600,
+                color: 'var(--color-anomaly)', cursor: 'pointer',
+                fontFamily: 'Montserrat, sans-serif', transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+            >
+              Удалить участок
+            </button>
+          </div>
         </div>
+
+        {/* Delete modal */}
+        {showDeleteModal && (
+          <div
+            onClick={() => setShowDeleteModal(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: 'var(--color-surface)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxWidth: 440, width: '100%', padding: '28px 28px 24px' }}
+            >
+              <h2 style={{ fontSize: 17, color: 'var(--color-text)', marginBottom: 12 }}>Удалить участок?</h2>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: 20 }}>
+                Вы уверены, что хотите удалить <strong style={{ color: 'var(--color-text)' }}>{field.name}</strong>?{' '}
+                Это действие необратимо.
+              </p>
+              {deleteError && (
+                <div style={{ fontSize: 13, color: 'var(--color-anomaly)', marginBottom: 16 }}>{deleteError}</div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleDelete}
+                  style={{ background: '#ef4444', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', transition: 'background 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#dc2626' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ef4444' }}
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showAlert && <AnomalyAlert message={sensorResult.irrigation?.message} anomalies={sensorResult.irrigation?.anomalies} />}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
-            Загрузка прогноза...
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease' }}>
+            {[260, 140, 180].map((h, i) => (
+              <div key={i} style={{
+                height: h, borderRadius: 'var(--radius-card)',
+                background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-accent-light) 50%, var(--color-border) 75%)',
+                backgroundSize: '400% 100%',
+                animation: 'shimmer 1.4s infinite',
+                opacity: 1 - i * 0.15,
+              }} />
+            ))}
           </div>
         ) : (
           <>
@@ -371,8 +453,20 @@ export default function FieldDetail() {
 
                 {/* Sensor quick stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <StatCard icon={<IconDroplet size={18} color="#1d4ed8" />} label="Влажность почвы" value="—" hint="Введите данные" bg="#eff6ff" color="#1d4ed8" />
-                  <StatCard icon={<IconThermometer size={18} color="#c2410c" />} label="Темп. воздуха" value="—" hint="Введите данные" bg="#fff7ed" color="#c2410c" />
+                  <StatCard
+                    icon={<IconDroplet size={18} color="#3b82f6" />}
+                    label="Влажность почвы"
+                    value={sensorResult?.soil_moisture != null ? `${sensorResult.soil_moisture}%` : '—'}
+                    hint={sensorResult?.soil_moisture != null ? null : 'Введите данные'}
+                    bg="rgba(59,130,246,0.08)" color="#3b82f6"
+                  />
+                  <StatCard
+                    icon={<IconThermometer size={18} color="#f97316" />}
+                    label="Темп. воздуха"
+                    value={sensorResult?.air_temperature != null ? `${sensorResult.air_temperature}°C` : '—'}
+                    hint={sensorResult?.air_temperature != null ? null : 'Введите данные'}
+                    bg="rgba(249,115,22,0.08)" color="#f97316"
+                  />
                 </div>
 
                 {/* Sensor form */}
@@ -400,7 +494,7 @@ export default function FieldDetail() {
                   </div>
                   <div style={{ marginBottom: 14, paddingRight: 96 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 2 }}>Осадки на 7 дней</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{field.crop}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{CROP_LABEL[field.crop] ?? field.crop}</div>
                   </div>
                   <PrecipChart data={weatherData?.precip_forecast_7days ?? forecast.precip_forecast_7days} height={240} />
                   {weatherData && (
@@ -413,11 +507,15 @@ export default function FieldDetail() {
                 {/* Водный баланс — после расчёта */}
                 {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days ?? forecast?.precip_forecast_7days} />}
 
+                {/* Мини-карта */}
+                <FieldMap latitude={field?.latitude} longitude={field?.longitude} fieldName={field?.name} />
+
               </div>
             </div>
           </>
         )}
       </div>
+      <Toast />
     </>
   )
 }

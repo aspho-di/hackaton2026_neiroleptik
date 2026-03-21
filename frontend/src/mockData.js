@@ -15,11 +15,11 @@ export const MOCK_AGRONOMIST = {
 }
 
 export const MOCK_FIELDS = [
-  { field_id: 45, name: "Участок 45 — Северный",    crop: "пшеница",      status: "normal",  temp: 22, precip: 5  },
-  { field_id: 12, name: "Участок 12 — Западный",    crop: "подсолнечник", status: "warning", temp: 32, precip: 1  },
-  { field_id: 7,  name: "Участок 7 — Южный",        crop: "кукуруза",     status: "anomaly", temp: 35, precip: 0  },
-  { field_id: 23, name: "Участок 23 — Центральный", crop: "ячмень",       status: "normal",  temp: 20, precip: 8  },
-  { field_id: 31, name: "Участок 31 — Восточный",   crop: "соя",          status: "warning", temp: 31, precip: 2  },
+  { field_id: 45, name: "Участок 45 — Северный",    crop: "wheat",     status: "normal",  temp: 22, precip: 5  },
+  { field_id: 12, name: "Участок 12 — Западный",    crop: "sunflower", status: "warning", temp: 32, precip: 1  },
+  { field_id: 7,  name: "Участок 7 — Южный",        crop: "corn",      status: "anomaly", temp: 35, precip: 0  },
+  { field_id: 23, name: "Участок 23 — Центральный", crop: "wheat",     status: "normal",  temp: 20, precip: 8  },
+  { field_id: 31, name: "Участок 31 — Восточный",   crop: "tomato",    status: "warning", temp: 31, precip: 2  },
 ]
 
 export const HISTORY_DATA = [

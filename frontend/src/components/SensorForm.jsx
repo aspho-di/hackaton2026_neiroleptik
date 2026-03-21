@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { validateSensorData, saveSensorData, fetchIrrigationRecommend } from '../api/client'
 import AnomalyAlert from './AnomalyAlert'
 import { IconCheck, IconX } from './icons/Icons'
+import { showToast } from './Toast'
 
 const inputStyle = {
   width: '100%',
@@ -86,7 +87,7 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
         air_temperature,
       })
       if (validation?.status === 'anomaly' && validation.anomalies?.length) {
-        setValidWarnings(validation.anomalies)
+        setValidWarnings(Array.isArray(validation.anomalies) ? validation.anomalies : [])
       }
 
       // Шаг 2: сохранить данные датчика (Go :8080)
@@ -98,7 +99,13 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
       ) ?? getMockResult(form)
 
       setResult(irrigationData)
-      onResult?.({ irrigation: irrigationData })
+      onResult?.({ irrigation: irrigationData, soil_moisture, air_temperature })
+      showToast('Данные датчика сохранены')
+
+      if (irrigationData?.irrigate === true) {
+        const prev = Number(localStorage.getItem('completed_recommendations') || 0)
+        localStorage.setItem('completed_recommendations', String(prev + 1))
+      }
     } catch {
       setError('Не удалось выполнить расчёт. Попробуйте снова.')
     } finally {

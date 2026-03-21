@@ -1,11 +1,17 @@
 // CropSVG — 7 crop type groups × 3 status variants × weather overlays
 
 export const CROP_TYPE_MAP = {
+  // English keys (from DB / ML service)
+  wheat:       'grain',
+  corn:        'corn',
+  sunflower:   'technical',
+  tomato:      'vegetable',
+  // Russian fallbacks (legacy / direct display)
   пшеница:     'grain',
   ячмень:      'grain',
   рожь:        'grain',
   овёс:        'grain',
-  кукуруза:    'grain',
+  кукуруза:    'corn',
   соя:         'legume',
   горох:       'legume',
   фасоль:      'legume',
@@ -31,6 +37,11 @@ const P = {
     normal:  { stem: '#7cb518', head: '#d4a017', grain: '#c8860f', leaf: '#5a9e10' },
     warning: { stem: '#a0a830', head: '#c8a030', grain: '#b08020', leaf: '#889030' },
     anomaly: { stem: '#8a8a6a', head: '#9a8a5a', grain: '#7a7050', leaf: '#787858' },
+  },
+  corn: {
+    normal:  { stem: '#5a9e10', head: '#f0c040', grain: '#e8a020', leaf: '#4a9010' },
+    warning: { stem: '#8aaa20', head: '#d4a030', grain: '#c07820', leaf: '#789020' },
+    anomaly: { stem: '#787858', head: '#9a8050', grain: '#887040', leaf: '#708060' },
   },
   legume: {
     normal:  { stem: '#4caf50', leaf: '#388e3c', pod: '#8bc34a', vein: '#2e7d32' },
@@ -70,37 +81,64 @@ function getTransform(status) {
   return ''
 }
 
-// ── Grain (пшеница, ячмень, рожь, овёс, кукуруза) ──────────────────────────
+// ── Corn (кукуруза) — початок на вершине стебля, листья по бокам, метёлка сверху
+function CornCrop({ p, status }) {
+  const t = getTransform(status)
+  // Cob: top y=16, bottom y=38 (22px tall, 14px wide) — comparable to sunflower head
+  return (
+    <g transform={t}>
+      {/* Main stem — from ground to cob base */}
+      <line x1="60" y1="88" x2="60" y2="38" stroke={p.stem} strokeWidth="4" />
+
+      {/* Tassel — fan above cob */}
+      <line x1="60" y1="16" x2="51" y2="6"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="55" y2="4"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="60" y2="3"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="65" y2="4"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="16" x2="69" y2="6"  stroke={p.stem} strokeWidth="1.5" />
+      <line x1="60" y1="18" x2="53" y2="10" stroke={p.stem} strokeWidth="1.0" opacity="0.5" />
+      <line x1="60" y1="18" x2="67" y2="10" stroke={p.stem} strokeWidth="1.0" opacity="0.5" />
+
+      {/* Husk leaves at cob base */}
+      <path d="M60,38 Q50,42 48,52 Q56,46 60,38Z" fill={p.leaf} opacity="0.9" />
+      <path d="M60,38 Q70,42 72,52 Q64,46 60,38Z" fill={p.leaf} opacity="0.9" />
+      <path d="M60,38 Q44,40 42,51 Q54,45 60,38Z" fill={p.leaf} opacity="0.6" />
+      <path d="M60,38 Q76,40 78,51 Q66,45 60,38Z" fill={p.leaf} opacity="0.6" />
+
+      {/* Cob body — 14×22px */}
+      <rect x="53" y="16" width="14" height="22" rx="6" fill={p.head} />
+
+      {/* Kernel rows */}
+      {[20,24,28,32,36].map(y => (
+        <line key={y} x1="53" y1={y} x2="67" y2={y}
+              stroke={p.grain} strokeWidth="1.0" opacity="0.55" />
+      ))}
+      {/* Kernel columns */}
+      {[57,60,63].map(x => (
+        <line key={x} x1={x} y1="16" x2={x} y2="38"
+              stroke={p.grain} strokeWidth="0.7" opacity="0.28" />
+      ))}
+
+      {/* Cob top cap */}
+      <ellipse cx="60" cy="17" rx="7" ry="2.5" fill={p.head} opacity="0.9" />
+      {/* Cob bottom */}
+      <ellipse cx="60" cy="38" rx="7" ry="2.5" fill={p.head} opacity="0.7" />
+
+      {/* Leaf right — angled upward, shorter */}
+      <path d="M60,54 C72,46 90,38 92,42 C88,52 72,58 60,54Z" fill={p.leaf} />
+      <line x1="60" y1="54" x2="90" y2="41" stroke={p.stem} strokeWidth="0.9" opacity="0.4" />
+
+      {/* Leaf left — angled upward, shorter */}
+      <path d="M60,68 C48,60 28,52 26,56 C28,66 46,72 60,68Z" fill={p.leaf} />
+      <line x1="60" y1="68" x2="28" y2="55" stroke={p.stem} strokeWidth="0.9" opacity="0.4" />
+    </g>
+  )
+}
+
+// ── Grain (пшеница, ячмень, рожь, овёс) ─────────────────────────────────────
 function GrainCrop({ p, status, crop }) {
-  const isCorn = crop === 'кукуруза'
   const isBarley = crop === 'ячмень' || crop === 'рожь' || crop === 'овёс'
   const t = getTransform(status)
-
-  if (isCorn) {
-    // Leaf blades go HORIZONTALLY then curve down — never look like raised arms even when rotated
-    return (
-      <g transform={t}>
-        {/* Thick main stem */}
-        <line x1="60" y1="88" x2="60" y2="12" stroke={p.stem} strokeWidth="4" />
-        {/* Upper leaf pair — wide horizontal blades */}
-        <path d="M60,38 Q84,32 88,44 Q75,41 60,38" fill={p.leaf} opacity="0.92" />
-        <path d="M60,44 Q36,38 32,50 Q45,47 60,44" fill={p.leaf} opacity="0.92" />
-        {/* Lower leaf pair */}
-        <path d="M60,58 Q86,51 90,64 Q75,60 60,58" fill={p.leaf} opacity="0.85" />
-        <path d="M60,64 Q34,57 30,70 Q45,66 60,64" fill={p.leaf} opacity="0.85" />
-        {/* Tassel at top */}
-        <line x1="60" y1="12" x2="53" y2="3" stroke={p.stem} strokeWidth="1.8" />
-        <line x1="60" y1="12" x2="60" y2="2" stroke={p.stem} strokeWidth="1.8" />
-        <line x1="60" y1="12" x2="67" y2="3" stroke={p.stem} strokeWidth="1.8" />
-        {/* Cob — clearly attached to stem, not floating */}
-        <rect x="52" y="42" width="16" height="30" rx="6" fill={p.head} />
-        <rect x="52" y="42" width="16" height="8" rx="4" fill={p.leaf} opacity="0.35" />
-        {[47,53,59,65,71].map(y => (
-          <line key={y} x1="52" y1={y} x2="68" y2={y} stroke={p.grain} strokeWidth="1.4" opacity="0.55" />
-        ))}
-      </g>
-    )
-  }
 
   if (isBarley) {
     // Longer awns (ости) — the key visual distinction from wheat
@@ -549,7 +587,7 @@ function RainOverlay() {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function CropSVG({ crop = 'пшеница', status = 'normal', temp = 20, precip = 5, width = 110, height = 90 }) {
+export default function CropSVG({ crop = 'wheat', status = 'normal', temp = 20, precip = 5, width = 110, height = 90 }) {
   const type = CROP_TYPE_MAP[crop] ?? 'grain'
   const palette = P[type]
   const p = palette[status] ?? palette.normal
@@ -570,6 +608,7 @@ export default function CropSVG({ crop = 'пшеница', status = 'normal', te
       <line x1="8" y1="88" x2="112" y2="88" stroke="var(--color-border)" strokeWidth="1.5" />
 
       {type === 'grain'      && <GrainCrop      {...cropProps} />}
+      {type === 'corn'       && <CornCrop       {...cropProps} />}
       {type === 'legume'     && <LegumeCrop     {...cropProps} />}
       {type === 'root'       && <RootCrop       {...cropProps} />}
       {type === 'technical'  && <TechnicalCrop  {...cropProps} />}

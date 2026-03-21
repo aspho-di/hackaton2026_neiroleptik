@@ -10,11 +10,21 @@ const props = (size, color) => ({
 })
 
 export const IconWheat = ({ size = 16, color = 'currentColor' }) => (
-  <svg {...props(size, color)}>
-    <path d="M12 22V2"/>
-    <path d="M17 7c0-2.8-2.2-5-5-5S7 4.2 7 7c0 2.1 1.3 3.9 3 4.8"/>
-    <path d="M7 12c0-2.8 2.2-5 5-5s5 2.2 5 5c0 2.1-1.3 3.9-3 4.8"/>
-    <path d="M17 17c0-2.8-2.2-5-5-5s-5 2.2-5 5c0 2.1 1.3 3.9 3 4.8"/>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+    style={{ display: 'block', flexShrink: 0 }}>
+    {/* stem */}
+    <line x1="12" y1="22" x2="12" y2="3"/>
+    {/* top spike — tall narrow almond, pointed top & bottom */}
+    <path d="M12 3 C10.8 5 10.2 7 10.2 9 C10.2 11 11 12.5 12 13 C13 12.5 13.8 11 13.8 9 C13.8 7 13.2 5 12 3 Z"/>
+    {/* left grain — slanted upward-left, pointed tips */}
+    <path d="M12 11.5 C10.8 10.5 9 9.5 7.5 9 C6.5 8.6 6.3 9.8 7.2 10.4 C8.7 11.2 10.8 12.5 12 13.5 Z"/>
+    {/* right grain — slanted upward-right */}
+    <path d="M12 14 C13.2 13 15 12 16.5 11.5 C17.5 11.1 17.7 12.3 16.8 12.9 C15.3 13.7 13.2 15 12 16 Z"/>
+    {/* left lower grain */}
+    <path d="M12 16 C10.8 15 9 14 7.5 13.5 C6.5 13.1 6.3 14.3 7.2 14.9 C8.7 15.7 10.8 17 12 18 Z"/>
+    {/* leaf */}
+    <path d="M12 19.5 Q9.5 18 9.2 15.8" strokeWidth="1.3"/>
   </svg>
 )
 
@@ -110,6 +120,12 @@ export const IconSun = ({ size = 16, color = 'currentColor' }) => (
   </svg>
 )
 
+export const IconMoon = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+)
+
 export const IconBarChart = ({ size = 16, color = 'currentColor' }) => (
   <svg {...props(size, color)}>
     <line x1="18" y1="20" x2="18" y2="10"/>
@@ -145,5 +161,36 @@ export const IconCompare = ({ size = 16, color = 'currentColor' }) => (
     <rect x="2" y="3" width="8" height="18" rx="1"/>
     <rect x="14" y="3" width="8" height="18" rx="1"/>
     <line x1="12" y1="8" x2="12" y2="16" strokeDasharray="2 2"/>
+  </svg>
+)
+
+export const IconCamera = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+)
+
+export const IconCalendar = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+)
+
+export const IconDownload = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
+
+export const IconSearch = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <circle cx="11" cy="11" r="8"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 )

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import Navbar from '../components/Navbar'
-import { alerts } from '../mockData'
+import { MOCK_ALERTS } from '../mockData'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck } from '../components/icons/Icons'
 
@@ -12,9 +11,9 @@ const FILTER_TABS = [
 ]
 
 const SEV = {
-  critical: { bg: '#fff1f0', border: '#fca5a5', accent: '#ef4444', text: '#b91c1c' },
-  warning:  { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#92400e' },
-  info:     { bg: '#eff6ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1e40af' },
+  critical: { bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.25)',  accent: 'var(--color-anomaly)', text: 'var(--color-anomaly)' },
+  warning:  { bg: 'rgba(251,191,36,0.07)',   border: 'rgba(251,191,36,0.25)', accent: 'var(--color-warning)', text: 'var(--color-warning)' },
+  info:     { bg: 'rgba(59,130,246,0.07)',   border: 'rgba(59,130,246,0.25)', accent: '#3b82f6',              text: '#3b82f6' },
 }
 
 function getReadIds() {
@@ -24,12 +23,12 @@ function getReadIds() {
 export default function Alerts() {
   const [filter,  setFilter]  = useState('all')
   const [readIds, setReadIds] = useState(getReadIds)
-  const [alerts,  setAlerts]  = useState(alerts)
+  const [alerts,  setAlerts]  = useState(MOCK_ALERTS)
 
   useEffect(() => {
-    fetchAlerts().then(data => {
-      if (data && Array.isArray(data)) setAlerts(data)
-    })
+    fetchAlerts()
+      .then(data => { if (data && Array.isArray(data)) setAlerts(data) })
+      .catch(() => {})
   }, [])
 
   function markRead(id) {
@@ -38,7 +37,7 @@ export default function Alerts() {
       localStorage.setItem('alerts_read', JSON.stringify(next))
       return next
     })
-    markAlertReadApi(id)
+    markAlertReadApi(id).catch(() => {})
   }
 
   function markAllRead() {
@@ -52,7 +51,6 @@ export default function Alerts() {
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 48px' }}>
 
         {/* Header */}
@@ -163,7 +161,7 @@ export default function Alerts() {
                       onClick={() => markRead(alert.id)}
                       style={{
                         padding: '5px 12px', border: '1px solid var(--color-border)',
-                        borderRadius: 6, background: '#fff', fontSize: 12,
+                        borderRadius: 6, background: 'var(--color-surface)', fontSize: 12,
                         cursor: 'pointer', color: 'var(--color-text-muted)',
                         flexShrink: 0, whiteSpace: 'nowrap',
                         transition: 'border-color 0.15s',

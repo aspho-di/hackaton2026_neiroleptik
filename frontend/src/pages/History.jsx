@@ -3,10 +3,23 @@ import {
   LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, CartesianGrid, Legend,
 } from 'recharts'
-import Navbar from '../components/Navbar'
 import { HISTORY_DATA } from '../mockData'
 import { fetchPredictions } from '../api/client'
 import { useFields } from '../hooks/useFields'
+import { IconDownload } from '../components/icons/Icons'
+
+function exportCSV() {
+  const headers = ['Год', 'Урожайность (ц/га)', 'Осадки (мм)', 'Жарких дней', 'Ср. температура (°C)', 'Водный баланс (мм)']
+  const rows = HISTORY_DATA.map(d => [d.year, d.yield_ctha, d.precip_mm, d.hot_days, d.avg_temp, d.water_balance])
+  const csv = [headers, ...rows].map(r => r.join(';')).join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'history_2016_2025.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 const card = {
   background: 'var(--color-surface)',
@@ -15,6 +28,22 @@ const card = {
   boxShadow: 'var(--shadow-card)',
   padding: '24px',
   marginBottom: '20px',
+}
+
+function SummaryCard({ label, value, sub, color, bg }) {
+  return (
+    <div style={{
+      background: bg || 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: 'var(--radius-card)',
+      boxShadow: 'var(--shadow-card)',
+      padding: '16px 18px',
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: color || 'var(--color-text)', lineHeight: 1, marginBottom: 3 }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{sub}</div>}
+    </div>
+  )
 }
 
 function getRating(y) {
@@ -28,11 +57,11 @@ function YieldTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6 }}>{label}</div>
-      <div style={{ color: '#1d4ed8' }}>Урожайность: <b>{d?.yield_ctha} ц/га</b></div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6, color: 'var(--color-text)' }}>{label}</div>
+      <div style={{ color: '#4caf50' }}>Урожайность: <b>{d?.yield_ctha} ц/га</b></div>
       <div style={{ color: '#3b82f6' }}>Осадки: {d?.precip_mm} мм</div>
-      <div style={{ color: d?.hot_days > 20 ? '#ef4444' : '#6b7c6e' }}>Жарких дней: {d?.hot_days}</div>
+      <div style={{ color: d?.hot_days > 20 ? '#ef4444' : 'var(--color-text-muted)' }}>Жарких дней: {d?.hot_days}</div>
     </div>
   )
 }
@@ -40,8 +69,8 @@ function YieldTooltip({ active, payload, label }) {
 function PrecipTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6 }}>{label}</div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6, color: 'var(--color-text)' }}>{label}</div>
       {payload.map(p => (
         <div key={p.dataKey} style={{ color: p.dataKey === 'precip_mm' ? '#3b82f6' : (p.value >= 0 ? '#16a34a' : '#ef4444') }}>
           {p.dataKey === 'precip_mm' ? 'Осадки' : 'Водный баланс'}: {p.value > 0 && p.dataKey !== 'precip_mm' ? '+' : ''}{p.value} мм
@@ -59,10 +88,12 @@ export default function History() {
 
   useEffect(() => {
     if (!selectedFieldId) return
-    fetchPredictions(selectedFieldId).then(data => {
-      if (data && Array.isArray(data)) setPredictions(data)
-      else setPredictions([])
-    })
+    fetchPredictions(selectedFieldId)
+      .then(data => {
+        if (data && Array.isArray(data)) setPredictions(data)
+        else setPredictions([])
+      })
+      .catch(() => setPredictions([]))
   }, [selectedFieldId])
 
   const avgYield = useMemo(() =>
@@ -70,20 +101,75 @@ export default function History() {
   [])
   const best  = useMemo(() => HISTORY_DATA.reduce((a, b) => a.yield_ctha > b.yield_ctha ? a : b), [])
   const worst = useMemo(() => HISTORY_DATA.reduce((a, b) => a.yield_ctha < b.yield_ctha ? a : b), [])
+  const trend = useMemo(() => {
+    const n = HISTORY_DATA.length
+    const first3 = HISTORY_DATA.slice(0, 3).reduce((s, d) => s + d.yield_ctha, 0) / 3
+    const last3  = HISTORY_DATA.slice(n - 3).reduce((s, d) => s + d.yield_ctha, 0) / 3
+    return +(last3 - first3).toFixed(1)
+  }, [])
 
   const analysis = selectedYear ? HISTORY_DATA.find(d => d.year === selectedYear) : null
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
-          Исторический анализ
-        </h1>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 28 }}>
-          Урожайность и погодные условия 2016–2025 · Ростовская область
-        </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 className="page-title">Исторический анализ</h1>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              Урожайность и погодные условия 2016–2025 · Ростовская область
+            </p>
+          </div>
+          <button
+            onClick={exportCSV}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-accent)',
+              borderRadius: 8, padding: '9px 18px',
+              fontSize: 13, fontWeight: 600,
+              color: 'var(--color-accent)',
+              cursor: 'pointer', fontFamily: 'Montserrat, sans-serif',
+              transition: 'all 0.15s', flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-accent)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-surface)'; e.currentTarget.style.color = 'var(--color-accent)' }}
+          >
+            <IconDownload size={15} color="currentColor" />
+            Скачать CSV
+          </button>
+        </div>
+
+        {/* Сводные карточки */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <SummaryCard
+            label="Средняя урожайность"
+            value={`${avgYield} ц/га`}
+            sub="за 2016–2025"
+            color="var(--color-normal)"
+          />
+          <SummaryCard
+            label={`Рекорд ${best.year}`}
+            value={`${best.yield_ctha} ц/га`}
+            sub={`${best.precip_mm} мм осадков`}
+            color="#16a34a"
+            bg="rgba(22,163,74,0.05)"
+          />
+          <SummaryCard
+            label={`Минимум ${worst.year}`}
+            value={`${worst.yield_ctha} ц/га`}
+            sub={`${worst.hot_days} жарких дней`}
+            color="var(--color-anomaly)"
+            bg="rgba(239,68,68,0.04)"
+          />
+          <SummaryCard
+            label="Тренд"
+            value={`${trend > 0 ? '+' : ''}${trend} ц/га`}
+            sub="разница: посл. 3 vs первые 3 года"
+            color={trend >= 0 ? 'var(--color-normal)' : 'var(--color-anomaly)'}
+          />
+        </div>
 
         {/* Блок 1 — Урожайность */}
         <div style={card}>
@@ -111,8 +197,8 @@ export default function History() {
               />
               <Line
                 type="monotone" dataKey="yield_ctha"
-                stroke="#1d4ed8" strokeWidth={2.5}
-                dot={{ r: 5, fill: '#1d4ed8', stroke: '#fff', strokeWidth: 2 }}
+                stroke="#4caf50" strokeWidth={2.5}
+                dot={{ r: 5, fill: '#4caf50', stroke: '#fff', strokeWidth: 2 }}
                 activeDot={{ r: 7 }}
                 isAnimationActive={false}
               />
@@ -301,7 +387,7 @@ export default function History() {
                       <td style={{ padding: '10px 14px', color: 'var(--color-text-muted)' }}>
                         {new Date(p.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1d4ed8' }}>{p.yield_prediction} ц/га</td>
+                      <td style={{ padding: '10px 14px', fontWeight: 600, color: '#4caf50' }}>{p.yield_prediction} ц/га</td>
                       <td style={{ padding: '10px 14px' }}>{p.irrigation_recommendation} мм</td>
                       <td style={{ padding: '10px 14px', color: p.confidence >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)' }}>
                         {p.confidence >= 0.7 ? 'Высокая' : 'Низкая'} ({Math.round(p.confidence * 100)}%)

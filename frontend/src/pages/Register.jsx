@@ -11,7 +11,7 @@ const inputStyle = {
   borderRadius: '8px',
   fontSize: '14px',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--color-surface)',
   color: 'var(--color-text)',
   transition: 'border-color 0.15s, box-shadow 0.15s',
 }
@@ -49,13 +49,13 @@ export default function Register() {
 
     const { confirm, password, ...userData } = form
     setUser({ ...userData, avatar: null, stats: { total_fields: 5, active_anomalies: 1, completed_recommendations: 0 } })
-    navigate('/')
+    navigate('/dashboard')
   }
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--color-bg)',
+      background: 'linear-gradient(140deg, #e8f5e9 0%, #f5f7f5 60%, #e0f2fe 100%)',
       display: 'flex',
       alignItems: 'flex-start',
       justifyContent: 'center',
@@ -65,19 +65,25 @@ export default function Register() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-            <WheatEmoji size={48} />
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #1a4d2e, #4caf50)',
+            boxShadow: '0 6px 20px rgba(26,77,46,0.25)',
+            marginBottom: '14px',
+          }}>
+            <WheatEmoji size={42} />
           </div>
           <div style={{
             fontFamily: 'Montserrat, sans-serif',
-            fontWeight: 700,
-            fontSize: '20px',
+            fontWeight: 800,
+            fontSize: '22px',
             color: 'var(--color-primary)',
           }}>
             АгроАналитика
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            Ростовская область
+          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
+            Предиктивная аналитика · Ростовская область
           </div>
         </div>
 
@@ -89,9 +95,15 @@ export default function Register() {
           boxShadow: 'var(--shadow-card)',
           padding: '28px 24px',
         }}>
-          <h1 style={{ fontSize: '18px', color: 'var(--color-text)', marginBottom: '20px', textAlign: 'center' }}>
+          <h1 style={{
+            fontSize: '20px', fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+            color: 'var(--color-text)', marginBottom: '6px', textAlign: 'center',
+          }}>
             Регистрация
           </h1>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '20px', textAlign: 'center' }}>
+            Создайте аккаунт агронома
+          </p>
 
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>

@@ -1,27 +1,64 @@
 import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
+import { useRef, useState } from 'react'
 import StatusBadge from '../components/StatusBadge'
-import { getUser, removeUser } from '../auth'
+import { getUser, setUser, removeUser } from '../auth'
 import { useFields } from '../hooks/useFields'
-import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
+import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap, IconCamera } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
 
-function Avatar({ name, size = 80 }) {
-  const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+function getCompletedRecs() {
+  return Number(localStorage.getItem('completed_recommendations') || 0)
+}
+
+function AvatarUpload({ user, size = 80, onUpload }) {
+  const inputRef = useRef()
+  const [hover, setHover] = useState(false)
+  const initials = (user?.name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+
+  function handleFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => onUpload(reader.result)
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
   return (
-    <div style={{
-      width: size, height: size,
-      borderRadius: '50%',
-      background: 'var(--color-accent)',
-      color: '#fff',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.35,
-      fontFamily: 'Montserrat, sans-serif',
-      fontWeight: 700,
-      flexShrink: 0,
-      boxShadow: '0 4px 12px rgba(76,175,80,0.35)',
-    }}>
-      {initials}
+    <div
+      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: 'pointer' }}
+      onClick={() => inputRef.current.click()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div style={{
+        width: size, height: size, borderRadius: '50%',
+        background: 'var(--color-accent)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.35, fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+        boxShadow: '0 4px 12px rgba(76,175,80,0.35)',
+        overflow: 'hidden',
+        transition: 'box-shadow 0.2s',
+      }}>
+        {user?.avatar
+          ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : initials
+        }
+      </div>
+
+      {hover && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.48)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 3, transition: 'opacity 0.15s',
+        }}>
+          <IconCamera size={20} color="#fff" />
+          <span style={{ fontSize: 9, color: '#fff', fontWeight: 700, letterSpacing: '0.04em' }}>ИЗМЕНИТЬ</span>
+        </div>
+      )}
+
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
     </div>
   )
 }
@@ -71,17 +108,26 @@ function StatCard({ icon, value, label, valueColor }) {
 
 export default function Profile() {
   const navigate = useNavigate()
-  const user = getUser()
-  const { fields: allFields } = useFields()
+  const [user, setUserState] = useState(() => getUser())
+  const { fields } = useFields()
 
-  // Данные пользователя из localStorage (заполненные при регистрации/входе)
+  function handleAvatarUpload(dataUrl) {
+    const updated = { ...user, avatar: dataUrl }
+    try { setUser(updated) } catch {}
+    setUserState(updated)
+    window.dispatchEvent(new Event('avatar-updated'))
+  }
+
   const name         = user?.name         || 'Агроном'
   const role         = user?.role         || '—'
   const organization = user?.organization || '—'
   const district     = user?.district     || '—'
   const email        = user?.email        || '—'
   const phone        = user?.phone        || '—'
-  const stats        = user?.stats        || { total_fields: 5, active_anomalies: 1, completed_recommendations: 0 }
+
+  const totalFields        = fields.length
+  const activeAnomalies    = fields.filter(f => f.status === 'anomaly').length
+  const completedRecs      = getCompletedRecs()
 
   function handleLogout() {
     removeUser()
@@ -90,8 +136,6 @@ export default function Profile() {
 
   return (
     <>
-      <Navbar />
-
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 48px' }}>
 
         {/* Header card */}
@@ -107,9 +151,9 @@ export default function Profile() {
           gap: '20px',
           flexWrap: 'wrap',
         }}>
-          <Avatar name={name} size={80} />
+          <AvatarUpload user={user} size={80} onUpload={handleAvatarUpload} />
           <div style={{ flex: 1, minWidth: '180px' }}>
-            <h1 style={{ fontSize: '20px', color: 'var(--color-text)', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: '20px', marginBottom: '4px', background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               {name}
             </h1>
             <div style={{ fontSize: '14px', color: 'var(--color-accent)', fontWeight: 600, marginBottom: '4px' }}>
@@ -145,9 +189,9 @@ export default function Profile() {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <StatCard icon={<WheatEmoji size={24} />}         value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
-          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={stats.active_anomalies}           label="Активных аномалий"      valueColor="var(--color-anomaly)" />
-          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={stats.completed_recommendations}  label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
+          <StatCard icon={<WheatEmoji size={24} />}                                          value={totalFields}     label="Полей всего"            valueColor="var(--color-text)" />
+          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={activeAnomalies} label="Активных аномалий"      valueColor="var(--color-anomaly)" />
+          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={completedRecs}   label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
         </div>
 
         {/* Contact & info card */}
@@ -183,7 +227,7 @@ export default function Profile() {
             <IconMap size={16} color="var(--color-text-muted)" />
             <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Закреплённые поля</h2>
           </div>
-          {allFields.map((field, i) => (
+          {fields.map((field, i) => (
             <div
               key={field.field_id}
               onClick={() => navigate(`/field/${field.field_id}`)}
@@ -192,7 +236,7 @@ export default function Profile() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '13px 20px',
-                borderBottom: i < allFields.length - 1 ? '1px solid var(--color-border)' : 'none',
+                borderBottom: i < fields.length - 1 ? '1px solid var(--color-border)' : 'none',
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}

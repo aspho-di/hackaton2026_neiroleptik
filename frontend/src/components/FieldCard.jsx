@@ -8,7 +8,7 @@ const BORDER_COLOR = {
   anomaly: 'var(--color-anomaly)',
 }
 
-export default function FieldCard({ field }) {
+export default function FieldCard({ field, index = 0 }) {
   const navigate = useNavigate()
   const accentColor = BORDER_COLOR[field.status] ?? BORDER_COLOR.normal
 
@@ -28,6 +28,8 @@ export default function FieldCard({ field }) {
         transition: 'box-shadow 0.15s, transform 0.12s',
         boxShadow: 'var(--shadow-card)',
         overflow: 'hidden',
+        animation: 'fadeIn 0.35s ease both',
+        animationDelay: `${index * 0.07}s`,
       }}
       onMouseEnter={e => {
         e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)'
@@ -41,7 +43,7 @@ export default function FieldCard({ field }) {
       {/* Text info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {(() => {
-          const match = field.name.match(/Участок (\d+) — (.+)/)
+          const match = field.name?.match(/Участок (\d+) — (.+)/)
           const number = match ? match[1] : field.field_id
           const title  = match ? match[2] : field.name
           return (

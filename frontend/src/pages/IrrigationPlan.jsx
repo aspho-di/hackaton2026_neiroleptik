@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
-import { MOCK_FIELDS } from '../mockData'
 import { loadSavedFields } from '../components/AddFieldModal'
+import { CROP_LABEL } from '../constants/districts'
+import Toast, { showToast } from '../components/Toast'
+import { IconDroplets } from '../components/icons/Icons'
 
 const STATUS_PRIORITY = { anomaly: 1, warning: 2, normal: 3 }
 const STATUS_LABELS   = { anomaly: 'Аномалия', warning: 'Внимание', normal: 'Норма' }
@@ -17,7 +18,7 @@ const card = {
 }
 
 export default function IrrigationPlan() {
-  const allFields = [...MOCK_FIELDS, ...loadSavedFields()]
+  const allFields = loadSavedFields()
   const sorted = [...allFields].sort((a, b) =>
     (STATUS_PRIORITY[a.status] || 3) - (STATUS_PRIORITY[b.status] || 3)
   )
@@ -33,7 +34,7 @@ export default function IrrigationPlan() {
 
     for (const f of sorted) {
       const mm   = AMOUNT_BY_STATUS[f.status] || 10
-      const area = f.area || 100
+      const area = f.area ?? 100
       const vol  = mm * area * 10  // 1 mm × 1 ha = 10 m³
 
       if (remaining <= 0) {
@@ -50,22 +51,72 @@ export default function IrrigationPlan() {
       }
     }
     setPlan({ fields: result, used: limit - remaining, remaining: Math.max(0, remaining) })
+    showToast('План полива распределён')
   }
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
+        <h1 className="page-title">
           Оптимизация полива
         </h1>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 28 }}>
           Распределение водного ресурса по участкам с учётом приоритетов
         </p>
 
+        {/* Сводка по участкам */}
+        {sorted.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 24 }}>
+            {[
+              { label: 'Всего участков', value: sorted.length, color: 'var(--color-text)' },
+              { label: 'Критических', value: sorted.filter(f => f.status === 'anomaly').length, color: 'var(--color-anomaly)' },
+              { label: 'Требуют внимания', value: sorted.filter(f => f.status === 'warning').length, color: 'var(--color-warning)' },
+              { label: 'Норма', value: sorted.filter(f => f.status === 'normal').length, color: 'var(--color-normal)' },
+              {
+                label: 'Нужно воды всего',
+                value: sorted.reduce((s, f) => s + ((AMOUNT_BY_STATUS[f.status] || 10) * (f.area ?? 100) * 10), 0).toLocaleString('ru-RU') + ' м³',
+                color: 'var(--color-text)',
+              },
+            ].map(c => (
+              <div key={c.label} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, marginBottom: 4 }}>{c.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: c.color }}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {sorted.length === 0 && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            padding: '72px 24px', textAlign: 'center',
+            background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)',
+            animation: 'fadeIn 0.4s ease',
+          }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: '50%',
+              background: 'var(--color-accent-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <IconDroplets size={36} color="var(--color-accent)" />
+            </div>
+            <div style={{
+              fontSize: 18, fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+              color: 'var(--color-text)', marginBottom: 10,
+            }}>
+              Участки не найдены
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', maxWidth: 300, lineHeight: 1.7 }}>
+              Добавьте участки на главной странице, чтобы составить план полива
+            </p>
+          </div>
+        )}
+
         {/* Форма ввода */}
-        <div style={{ ...card, marginBottom: 20 }}>
+        {sorted.length > 0 && <div style={{ ...card, marginBottom: 20 }}>
           <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 16 }}>
             Параметры распределения
           </div>
@@ -120,13 +171,13 @@ export default function IrrigationPlan() {
               <tbody>
                 {sorted.map((f, idx) => {
                   const mm   = AMOUNT_BY_STATUS[f.status] || 10
-                  const area = f.area || 100
+                  const area = f.area ?? 100
                   const vol  = mm * area * 10
                   const priorityLabel = STATUS_PRIORITY[f.status] === 1 ? 'Критический' : STATUS_PRIORITY[f.status] === 2 ? 'Высокий' : 'Плановый'
                   return (
                     <tr key={f.field_id} style={{ borderBottom: '1px solid var(--color-border)', background: idx === 0 ? '#fff1f0' : 'transparent' }}>
                       <td style={{ padding: '10px 14px', fontWeight: 500 }}>{f.name}</td>
-                      <td style={{ padding: '10px 14px', textTransform: 'capitalize', color: 'var(--color-text-muted)' }}>{f.crop || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--color-text-muted)' }}>{CROP_LABEL[f.crop] ?? f.crop ?? '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{ color: STATUS_COLORS[f.status], fontWeight: 600, fontSize: 12 }}>
                           ● {STATUS_LABELS[f.status]}
@@ -142,11 +193,11 @@ export default function IrrigationPlan() {
               </tbody>
             </table>
           </div>
-        </div>
+        </div>}
 
         {/* Результат распределения */}
-        {plan && (
-          <div style={card}>
+        {sorted.length > 0 && plan && (
+          <div style={{ ...card, animation: 'fadeIn 0.25s ease' }}>
             <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-text)', marginBottom: 6 }}>
               План распределения
             </div>
@@ -199,6 +250,7 @@ export default function IrrigationPlan() {
         )}
 
       </div>
+      <Toast />
     </>
   )
 }

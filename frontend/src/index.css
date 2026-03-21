@@ -16,6 +16,30 @@
   --radius-card: 12px;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+
+  --scrollbar-track:    #f5f7f5;
+}
+
+html[data-theme="dark"] {
+  /* Нейтральная угольная основа — зелень выделяется, не тонет */
+  --color-primary:      #1a4d2e;   /* навбар — оставляем насыщенным */
+  --color-accent:       #4ade80;   /* зелень ярче для тёмного фона */
+  --color-accent-hover: #22c55e;
+  --color-accent-light: rgba(74, 222, 128, 0.10);
+  --color-bg:           #0d1117;   /* тёмный charcoal, не зелёный */
+  --color-surface:      #161b22;   /* карточки */
+  --color-text:         #e6edf3;   /* чистый светло-серый */
+  --color-text-muted:   #8b949e;   /* приглушённый серый */
+  --color-border:       #2d333b;   /* граница */
+
+  --color-normal:       #4ade80;
+  --color-warning:      #fbbf24;   /* тёплый янтарь */
+  --color-anomaly:      #f87171;   /* мягкий красный */
+
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.65);
+
+  --scrollbar-track:    #0d1117;
 }
 
 *, *::before, *::after {
@@ -68,4 +92,80 @@ input, select, textarea {
   .field-detail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Скроллбар для webkit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track-piece,
+::-webkit-scrollbar-corner {
+  background: transparent;
+  border: none;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a8d5a2, #4caf50, #1a4d2e);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4caf50, #1a4d2e);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50%       { transform: rotate(1.5deg); }
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4caf50 transparent;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(32px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Gradient page heading */
+.page-title {
+  font-size: 22px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Active nav dot */
+.nav-icon-active .nav-active-dot {
+  opacity: 1 !important;
+}
+
+/* Mobile navbar */
+@media (max-width: 600px) {
+  .nav-brand-label { display: none; }
+  .nav-inner { padding: 0 12px !important; }
+  .nav-icon-gap { gap: 2px !important; }
 }
