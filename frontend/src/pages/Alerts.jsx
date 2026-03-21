@@ -26,9 +26,9 @@ export default function Alerts() {
   const [alerts,  setAlerts]  = useState(MOCK_ALERTS)
 
   useEffect(() => {
-    fetchAlerts().then(data => {
-      if (data && Array.isArray(data)) setAlerts(data)
-    })
+    fetchAlerts()
+      .then(data => { if (data && Array.isArray(data)) setAlerts(data) })
+      .catch(() => {})
   }, [])
 
   function markRead(id) {
@@ -37,7 +37,7 @@ export default function Alerts() {
       localStorage.setItem('alerts_read', JSON.stringify(next))
       return next
     })
-    markAlertReadApi(id)
+    markAlertReadApi(id).catch(() => {})
   }
 
   function markAllRead() {

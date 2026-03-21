@@ -38,7 +38,7 @@ export default function Login() {
       return
     }
     setUser({ ...MOCK_AGRONOMIST, email: form.email })
-    navigate('/')
+    navigate('/dashboard')
   }
 
   return (

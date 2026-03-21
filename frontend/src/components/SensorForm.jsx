@@ -87,7 +87,7 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
         air_temperature,
       })
       if (validation?.status === 'anomaly' && validation.anomalies?.length) {
-        setValidWarnings(validation.anomalies)
+        setValidWarnings(Array.isArray(validation.anomalies) ? validation.anomalies : [])
       }
 
       // Шаг 2: сохранить данные датчика (Go :8080)

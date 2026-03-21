@@ -96,22 +96,23 @@ input, select, textarea {
 
 /* Скроллбар для webkit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-track-piece,
 ::-webkit-scrollbar-corner {
-  background: var(--scrollbar-track);
+  background: transparent;
+  border: none;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4caf50;
+  background: linear-gradient(180deg, #a8d5a2, #4caf50, #1a4d2e);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1a4d2e;
+  background: linear-gradient(180deg, #4caf50, #1a4d2e);
 }
 
 ::-webkit-scrollbar-button {

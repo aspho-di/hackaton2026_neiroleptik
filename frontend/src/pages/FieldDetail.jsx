@@ -178,8 +178,9 @@ function WhatIfSection({ baseYield }) {
 
   const precipEffect   = (precipChange / 100) * 8
   const tempEffect     = tempChange * (-1.2)
-  const adjustedYield  = +(baseYield + precipEffect + tempEffect).toFixed(1)
-  const delta          = +(adjustedYield - baseYield).toFixed(1)
+  const base           = baseYield ?? 0
+  const adjustedYield  = +(base + precipEffect + tempEffect).toFixed(1)
+  const delta          = +(adjustedYield - base).toFixed(1)
   const deltaColor     = delta >= 0 ? 'var(--color-normal)' : 'var(--color-anomaly)'
 
   return (
@@ -281,7 +282,7 @@ export default function FieldDetail() {
     const saved   = JSON.parse(localStorage.getItem('fields') || '[]')
     const updated = saved.filter(f => f.field_id !== field.field_id)
     localStorage.setItem('fields', JSON.stringify(updated))
-    navigate('/')
+    navigate('/dashboard')
   }
 
   useEffect(() => {
@@ -294,14 +295,21 @@ export default function FieldDetail() {
     const lon = field?.longitude ?? 40.31
 
     async function load() {
-      const [forecastData, weather] = await Promise.all([
-        fetchForecast(fieldId, lat, lon),
-        fetchCurrentWeather(lat, lon),
-      ])
-      if (!cancelled) {
-        setForecast(forecastData ?? getMockForecastForField(fieldId))
-        setWeatherData(weather)
-        setLoading(false)
+      try {
+        const [forecastData, weather] = await Promise.all([
+          fetchForecast(fieldId, lat, lon),
+          fetchCurrentWeather(lat, lon),
+        ])
+        if (!cancelled) {
+          setForecast(forecastData ?? getMockForecastForField(fieldId))
+          setWeatherData(weather)
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setForecast(getMockForecastForField(fieldId))
+          setLoading(false)
+        }
       }
     }
 
@@ -321,7 +329,7 @@ export default function FieldDetail() {
     return (
       <div style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
         Поле не найдено.{' '}
-        <button onClick={() => navigate('/')} style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+        <button onClick={() => navigate('/dashboard')} style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
           На главную
         </button>
       </div>
@@ -339,7 +347,7 @@ export default function FieldDetail() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
 
         {/* Back */}
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
+        <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
           ← Все поля
         </button>
 

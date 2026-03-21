@@ -10,11 +10,21 @@ const props = (size, color) => ({
 })
 
 export const IconWheat = ({ size = 16, color = 'currentColor' }) => (
-  <svg {...props(size, color)}>
-    <path d="M12 22V2"/>
-    <path d="M17 7c0-2.8-2.2-5-5-5S7 4.2 7 7c0 2.1 1.3 3.9 3 4.8"/>
-    <path d="M7 12c0-2.8 2.2-5 5-5s5 2.2 5 5c0 2.1-1.3 3.9-3 4.8"/>
-    <path d="M17 17c0-2.8-2.2-5-5-5s-5 2.2-5 5c0 2.1 1.3 3.9 3 4.8"/>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+    style={{ display: 'block', flexShrink: 0 }}>
+    {/* stem */}
+    <line x1="12" y1="22" x2="12" y2="3"/>
+    {/* top spike — tall narrow almond, pointed top & bottom */}
+    <path d="M12 3 C10.8 5 10.2 7 10.2 9 C10.2 11 11 12.5 12 13 C13 12.5 13.8 11 13.8 9 C13.8 7 13.2 5 12 3 Z"/>
+    {/* left grain — slanted upward-left, pointed tips */}
+    <path d="M12 11.5 C10.8 10.5 9 9.5 7.5 9 C6.5 8.6 6.3 9.8 7.2 10.4 C8.7 11.2 10.8 12.5 12 13.5 Z"/>
+    {/* right grain — slanted upward-right */}
+    <path d="M12 14 C13.2 13 15 12 16.5 11.5 C17.5 11.1 17.7 12.3 16.8 12.9 C15.3 13.7 13.2 15 12 16 Z"/>
+    {/* left lower grain */}
+    <path d="M12 16 C10.8 15 9 14 7.5 13.5 C6.5 13.1 6.3 14.3 7.2 14.9 C8.7 15.7 10.8 17 12 18 Z"/>
+    {/* leaf */}
+    <path d="M12 19.5 Q9.5 18 9.2 15.8" strokeWidth="1.3"/>
   </svg>
 )
 

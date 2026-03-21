@@ -72,10 +72,12 @@ export default function History() {
 
   useEffect(() => {
     if (!selectedFieldId) return
-    fetchPredictions(selectedFieldId).then(data => {
-      if (data && Array.isArray(data)) setPredictions(data)
-      else setPredictions([])
-    })
+    fetchPredictions(selectedFieldId)
+      .then(data => {
+        if (data && Array.isArray(data)) setPredictions(data)
+        else setPredictions([])
+      })
+      .catch(() => setPredictions([]))
   }, [selectedFieldId])
 
   const avgYield = useMemo(() =>

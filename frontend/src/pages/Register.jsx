@@ -49,7 +49,7 @@ export default function Register() {
 
     const { confirm, password, ...userData } = form
     setUser({ ...userData, avatar: null, stats: { total_fields: 5, active_anomalies: 1, completed_recommendations: 0 } })
-    navigate('/')
+    navigate('/dashboard')
   }
 
   return (

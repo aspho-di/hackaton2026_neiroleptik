@@ -43,7 +43,7 @@ export default function FieldCard({ field, index = 0 }) {
       {/* Text info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {(() => {
-          const match = field.name.match(/Участок (\d+) — (.+)/)
+          const match = field.name?.match(/Участок (\d+) — (.+)/)
           const number = match ? match[1] : field.field_id
           const title  = match ? match[2] : field.name
           return (
