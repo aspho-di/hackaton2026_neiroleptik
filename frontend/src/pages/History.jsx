@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, CartesianGrid, Legend,
 } from 'recharts'
 import Navbar from '../components/Navbar'
 import { HISTORY_DATA } from '../mockData'
+import { fetchPredictions } from '../api/client'
+import { useFields } from '../hooks/useFields'
 
 const card = {
   background: 'var(--color-surface)',
@@ -51,6 +53,17 @@ function PrecipTooltip({ active, payload, label }) {
 
 export default function History() {
   const [selectedYear, setSelectedYear] = useState(null)
+  const { fields } = useFields()
+  const [selectedFieldId, setSelectedFieldId] = useState(null)
+  const [predictions, setPredictions] = useState([])
+
+  useEffect(() => {
+    if (!selectedFieldId) return
+    fetchPredictions(selectedFieldId).then(data => {
+      if (data && Array.isArray(data)) setPredictions(data)
+      else setPredictions([])
+    })
+  }, [selectedFieldId])
 
   const avgYield = useMemo(() =>
     +(HISTORY_DATA.reduce((s, d) => s + d.yield_ctha, 0) / HISTORY_DATA.length).toFixed(1),
@@ -250,6 +263,56 @@ export default function History() {
           })() : (
             <div style={{ color: 'var(--color-text-muted)', fontSize: 13, padding: '12px 0' }}>
               Выберите год для просмотра детального анализа
+            </div>
+          )}
+        </div>
+
+        {/* Блок 5 — История прогнозов из бэкенда */}
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 12 }}>
+            История прогнозов по полю
+          </div>
+          <select
+            value={selectedFieldId ?? ''}
+            onChange={e => setSelectedFieldId(Number(e.target.value) || null)}
+            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13, marginBottom: 16, background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none' }}
+          >
+            <option value="">Выберите поле</option>
+            {fields.map(f => <option key={f.field_id} value={f.field_id}>{f.name}</option>)}
+          </select>
+
+          {selectedFieldId && predictions.length === 0 && (
+            <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Нет данных прогнозов для этого поля</div>
+          )}
+
+          {predictions.length > 0 && (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                    {['Дата', 'Урожайность', 'Полив (мм)', 'Уверенность', 'Аномалия'].map(h => (
+                      <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {predictions.map(p => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '10px 14px', color: 'var(--color-text-muted)' }}>
+                        {new Date(p.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1d4ed8' }}>{p.yield_prediction} ц/га</td>
+                      <td style={{ padding: '10px 14px' }}>{p.irrigation_recommendation} мм</td>
+                      <td style={{ padding: '10px 14px', color: p.confidence >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)' }}>
+                        {p.confidence >= 0.7 ? 'Высокая' : 'Низкая'} ({Math.round(p.confidence * 100)}%)
+                      </td>
+                      <td style={{ padding: '10px 14px', color: p.is_anomaly ? 'var(--color-anomaly)' : 'var(--color-normal)', fontWeight: p.is_anomaly ? 600 : 400 }}>
+                        {p.is_anomaly ? 'Да' : 'Нет'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

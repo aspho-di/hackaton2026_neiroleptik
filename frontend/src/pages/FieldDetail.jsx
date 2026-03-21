@@ -376,7 +376,7 @@ export default function FieldDetail() {
                 </div>
 
                 {/* Sensor form */}
-                <SensorForm fieldId={fieldId} onResult={setSensorResult} />
+                <SensorForm fieldId={fieldId} crop={field?.crop ?? 'wheat'} onResult={setSensorResult} />
 
                 {/* What-if */}
                 <WhatIfSection baseYield={forecast.yield_ctha} />

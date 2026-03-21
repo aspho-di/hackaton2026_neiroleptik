@@ -1,4 +1,5 @@
 const BASE_URL = 'http://localhost:8080'
+const PY_URL   = 'http://localhost:8002'
 
 // ── Поля ──────────────────────────────────────────────────────────────────────
 export async function fetchFields() {
@@ -81,13 +82,13 @@ export async function fetchSensorData(field_id) {
   }
 }
 
-// ── Рекомендация полива ───────────────────────────────────────────────────────
-export async function fetchIrrigationRecommend(field_id, humidity, soil_moisture, temperature) {
+// ── Рекомендация полива (Python :8002) ────────────────────────────────────────
+export async function fetchIrrigationRecommend(field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days = []) {
   try {
-    const res = await fetch(`${BASE_URL}/api/v1/recommend/irrigation`, {
+    const res = await fetch(`${PY_URL}/recommend/irrigation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field_id, humidity, soil_moisture, temperature }),
+      body: JSON.stringify({ field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days }),
     })
     if (!res.ok) throw new Error()
     return await res.json()
@@ -99,28 +100,42 @@ export async function fetchIrrigationRecommend(field_id, humidity, soil_moisture
 // ── Уведомления ───────────────────────────────────────────────────────────────
 export async function fetchAlerts() {
   try {
-    const res = await fetch(`${BASE_URL}/api/alerts`)
+    const res = await fetch(`${BASE_URL}/api/v1/alerts`)
+    if (!res.ok) throw new Error()
+    const data = await res.json()
+    return data.map(a => ({
+      id:         String(a.id),
+      type:       a.type     ?? 'weather',
+      severity:   a.severity === 'medium' ? 'warning' : (a.severity ?? 'info'),
+      title:      a.message  ?? 'Уведомление',
+      message:    a.message  ?? '',
+      action:     null,
+      district:   '',
+      created_at: a.created_at,
+      is_read:    a.is_read  ?? false,
+      field_id:   a.field_id,
+    }))
+  } catch {
+    return null
+  }
+}
+
+export async function markAlertRead(id) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/v1/alerts/${id}/read`, { method: 'PUT' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+export async function fetchPredictions(field_id) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/v1/predictions/${field_id}`)
     if (!res.ok) throw new Error()
     return await res.json()
   } catch {
-    try {
-      const res2 = await fetch(`${BASE_URL}/api/v1/alerts`)
-      if (!res2.ok) throw new Error()
-      const data = await res2.json()
-      return data.map(a => ({
-        id:         String(a.id),
-        type:       a.type       ?? 'weather',
-        severity:   a.severity   ?? 'info',
-        title:      a.message    ?? 'Уведомление',
-        message:    a.description ?? a.message,
-        action:     a.action     ?? null,
-        district:   a.district   ?? '',
-        created_at: a.created_at,
-        is_read:    a.is_read    ?? false,
-      }))
-    } catch {
-      return null
-    }
+    return null
   }
 }
 
@@ -148,10 +163,10 @@ export async function fetchDistricts() {
   }
 }
 
-// ── Валидация данных датчика ───────────────────────────────────────────────────
+// ── Валидация данных датчика (Python :8002) ────────────────────────────────────
 export async function validateSensorData(data) {
   try {
-    const res = await fetch(`${BASE_URL}/api/v1/validate`, {
+    const res = await fetch(`${PY_URL}/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

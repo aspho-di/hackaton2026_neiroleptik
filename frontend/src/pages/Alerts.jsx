@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { alerts } from '../mockData'
-import { fetchAlerts } from '../api/client'
+import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck } from '../components/icons/Icons'
 
 const FILTER_TABS = [
@@ -38,6 +38,7 @@ export default function Alerts() {
       localStorage.setItem('alerts_read', JSON.stringify(next))
       return next
     })
+    markAlertReadApi(id)
   }
 
   function markAllRead() {
