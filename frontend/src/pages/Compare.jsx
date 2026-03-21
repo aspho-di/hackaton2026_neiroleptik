@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
 import { useFields } from '../hooks/useFields'
 import { getMockForecastForField } from '../mockData'
@@ -86,8 +85,8 @@ function CompareTable({ items }) {
         const m = item.sensors.soil_moisture
         const warn = m > 90 || m < 20
         return (
-          <span style={{ color: warn ? 'var(--color-anomaly)' : 'inherit' }}>
-            {m}%{warn && ' ⚠'}
+          <span style={{ color: warn ? 'var(--color-anomaly)' : 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {m}%{warn && <IconWarning size={13} color="var(--color-anomaly)" />}
           </span>
         )
       },
@@ -225,7 +224,6 @@ export default function Compare() {
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
 
         <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>

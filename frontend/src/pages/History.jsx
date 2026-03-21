@@ -3,7 +3,6 @@ import {
   LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, CartesianGrid, Legend,
 } from 'recharts'
-import Navbar from '../components/Navbar'
 import { HISTORY_DATA } from '../mockData'
 import { fetchPredictions } from '../api/client'
 import { useFields } from '../hooks/useFields'
@@ -30,7 +29,7 @@ function YieldTooltip({ active, payload, label }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
       <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6 }}>{label}</div>
-      <div style={{ color: '#1d4ed8' }}>Урожайность: <b>{d?.yield_ctha} ц/га</b></div>
+      <div style={{ color: '#4caf50' }}>Урожайность: <b>{d?.yield_ctha} ц/га</b></div>
       <div style={{ color: '#3b82f6' }}>Осадки: {d?.precip_mm} мм</div>
       <div style={{ color: d?.hot_days > 20 ? '#ef4444' : '#6b7c6e' }}>Жарких дней: {d?.hot_days}</div>
     </div>
@@ -75,7 +74,6 @@ export default function History() {
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
         <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
@@ -111,8 +109,8 @@ export default function History() {
               />
               <Line
                 type="monotone" dataKey="yield_ctha"
-                stroke="#1d4ed8" strokeWidth={2.5}
-                dot={{ r: 5, fill: '#1d4ed8', stroke: '#fff', strokeWidth: 2 }}
+                stroke="#4caf50" strokeWidth={2.5}
+                dot={{ r: 5, fill: '#4caf50', stroke: '#fff', strokeWidth: 2 }}
                 activeDot={{ r: 7 }}
                 isAnimationActive={false}
               />
@@ -286,7 +284,7 @@ export default function History() {
           )}
 
           {predictions.length > 0 && (
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{ overflowX: 'overlay' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
@@ -301,7 +299,7 @@ export default function History() {
                       <td style={{ padding: '10px 14px', color: 'var(--color-text-muted)' }}>
                         {new Date(p.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1d4ed8' }}>{p.yield_prediction} ц/га</td>
+                      <td style={{ padding: '10px 14px', fontWeight: 600, color: '#4caf50' }}>{p.yield_prediction} ц/га</td>
                       <td style={{ padding: '10px 14px' }}>{p.irrigation_recommendation} мм</td>
                       <td style={{ padding: '10px 14px', color: p.confidence >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)' }}>
                         {p.confidence >= 0.7 ? 'Высокая' : 'Низкая'} ({Math.round(p.confidence * 100)}%)

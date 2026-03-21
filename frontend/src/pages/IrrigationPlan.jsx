@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
-import { MOCK_FIELDS } from '../mockData'
 import { loadSavedFields } from '../components/AddFieldModal'
 
 const STATUS_PRIORITY = { anomaly: 1, warning: 2, normal: 3 }
@@ -17,7 +15,7 @@ const card = {
 }
 
 export default function IrrigationPlan() {
-  const allFields = [...MOCK_FIELDS, ...loadSavedFields()]
+  const allFields = loadSavedFields()
   const sorted = [...allFields].sort((a, b) =>
     (STATUS_PRIORITY[a.status] || 3) - (STATUS_PRIORITY[b.status] || 3)
   )
@@ -54,7 +52,6 @@ export default function IrrigationPlan() {
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
         <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
@@ -146,7 +143,7 @@ export default function IrrigationPlan() {
 
         {/* Результат распределения */}
         {plan && (
-          <div style={card}>
+          <div style={{ ...card, animation: 'fadeIn 0.25s ease' }}>
             <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-text)', marginBottom: 6 }}>
               План распределения
             </div>

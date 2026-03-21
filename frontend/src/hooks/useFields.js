@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { MOCK_FIELDS } from '../mockData'
 import { fetchFields } from '../api/client'
 
 export function useFields() {
@@ -23,7 +22,7 @@ export function useFields() {
         setFields(adapted)
       } else {
         const saved = JSON.parse(localStorage.getItem('fields') || '[]')
-        setFields([...MOCK_FIELDS, ...saved])
+        setFields(saved)
       }
       setLoading(false)
     })
