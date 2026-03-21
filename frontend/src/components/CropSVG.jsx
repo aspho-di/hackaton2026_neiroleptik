@@ -124,13 +124,13 @@ function CornCrop({ p, status }) {
       {/* Cob bottom */}
       <ellipse cx="60" cy="38" rx="7" ry="2.5" fill={p.head} opacity="0.7" />
 
-      {/* Leaf right — rises then droops to pointed tip */}
-      <path d="M60,52 C76,42 106,54 108,68 C92,76 68,64 60,52Z" fill={p.leaf} />
-      <line x1="60" y1="52" x2="104" y2="64" stroke={p.stem} strokeWidth="0.9" opacity="0.4" />
+      {/* Leaf right — angled upward, shorter */}
+      <path d="M60,54 C72,46 90,38 92,42 C88,52 72,58 60,54Z" fill={p.leaf} />
+      <line x1="60" y1="54" x2="90" y2="41" stroke={p.stem} strokeWidth="0.9" opacity="0.4" />
 
-      {/* Leaf left — rises then droops to pointed tip */}
-      <path d="M60,68 C44,58 12,70 10,84 C26,90 52,80 60,68Z" fill={p.leaf} />
-      <line x1="60" y1="68" x2="14" y2="80" stroke={p.stem} strokeWidth="0.9" opacity="0.4" />
+      {/* Leaf left — angled upward, shorter */}
+      <path d="M60,68 C48,60 28,52 26,56 C28,66 46,72 60,68Z" fill={p.leaf} />
+      <line x1="60" y1="68" x2="28" y2="55" stroke={p.stem} strokeWidth="0.9" opacity="0.4" />
     </g>
   )
 }
