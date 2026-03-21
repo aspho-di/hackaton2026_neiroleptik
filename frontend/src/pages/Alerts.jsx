@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import { alerts } from '../mockData'
+import { MOCK_ALERTS } from '../mockData'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck } from '../components/icons/Icons'
 
@@ -24,7 +24,7 @@ function getReadIds() {
 export default function Alerts() {
   const [filter,  setFilter]  = useState('all')
   const [readIds, setReadIds] = useState(getReadIds)
-  const [alerts,  setAlerts]  = useState(alerts)
+  const [alerts,  setAlerts]  = useState(MOCK_ALERTS)
 
   useEffect(() => {
     fetchAlerts().then(data => {
