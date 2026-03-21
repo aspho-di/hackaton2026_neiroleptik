@@ -1,30 +1,64 @@
 import { useNavigate } from 'react-router-dom'
+import { useRef, useState } from 'react'
 import StatusBadge from '../components/StatusBadge'
-import { getUser, removeUser } from '../auth'
+import { getUser, setUser, removeUser } from '../auth'
 import { useFields } from '../hooks/useFields'
-import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
+import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap, IconCamera } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
 
 function getCompletedRecs() {
   return Number(localStorage.getItem('completed_recommendations') || 0)
 }
 
-function Avatar({ name, size = 80 }) {
-  const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+function AvatarUpload({ user, size = 80, onUpload }) {
+  const inputRef = useRef()
+  const [hover, setHover] = useState(false)
+  const initials = (user?.name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+
+  function handleFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => onUpload(reader.result)
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
   return (
-    <div style={{
-      width: size, height: size,
-      borderRadius: '50%',
-      background: 'var(--color-accent)',
-      color: '#fff',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.35,
-      fontFamily: 'Montserrat, sans-serif',
-      fontWeight: 700,
-      flexShrink: 0,
-      boxShadow: '0 4px 12px rgba(76,175,80,0.35)',
-    }}>
-      {initials}
+    <div
+      style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: 'pointer' }}
+      onClick={() => inputRef.current.click()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div style={{
+        width: size, height: size, borderRadius: '50%',
+        background: 'var(--color-accent)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.35, fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+        boxShadow: '0 4px 12px rgba(76,175,80,0.35)',
+        overflow: 'hidden',
+        transition: 'box-shadow 0.2s',
+      }}>
+        {user?.avatar
+          ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : initials
+        }
+      </div>
+
+      {hover && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.48)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 3, transition: 'opacity 0.15s',
+        }}>
+          <IconCamera size={20} color="#fff" />
+          <span style={{ fontSize: 9, color: '#fff', fontWeight: 700, letterSpacing: '0.04em' }}>ИЗМЕНИТЬ</span>
+        </div>
+      )}
+
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
     </div>
   )
 }
@@ -74,10 +108,16 @@ function StatCard({ icon, value, label, valueColor }) {
 
 export default function Profile() {
   const navigate = useNavigate()
-  const user = getUser()
+  const [user, setUserState] = useState(() => getUser())
   const { fields } = useFields()
 
-  // Данные пользователя из localStorage (заполненные при регистрации/входе)
+  function handleAvatarUpload(dataUrl) {
+    const updated = { ...user, avatar: dataUrl }
+    setUser(updated)
+    setUserState(updated)
+    window.dispatchEvent(new Event('avatar-updated'))
+  }
+
   const name         = user?.name         || 'Агроном'
   const role         = user?.role         || '—'
   const organization = user?.organization || '—'
@@ -111,7 +151,7 @@ export default function Profile() {
           gap: '20px',
           flexWrap: 'wrap',
         }}>
-          <Avatar name={name} size={80} />
+          <AvatarUpload user={user} size={80} onUpload={handleAvatarUpload} />
           <div style={{ flex: 1, minWidth: '180px' }}>
             <h1 style={{ fontSize: '20px', color: 'var(--color-text)', marginBottom: '4px' }}>
               {name}
