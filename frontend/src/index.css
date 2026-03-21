@@ -77,6 +77,8 @@ input, select, textarea {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 ::-webkit-scrollbar-thumb {
