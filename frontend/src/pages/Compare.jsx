@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
 import { useFields } from '../hooks/useFields'
 import { getMockForecastForField } from '../mockData'
 import { IconWarning } from '../components/icons/Icons'
+import { CROP_LABEL } from '../constants/districts'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   ResponsiveContainer, Legend, Tooltip,
@@ -34,7 +34,7 @@ function buildRadarData(items) {
     const entry = { subject: ax }
     items.forEach(({ field, forecast, sensors, precip }, i) => {
       let val = 0
-      if (ax === 'Урожайность') val = Math.min((forecast.yield_ctha / 50) * 100, 100)
+      if (ax === 'Урожайность') val = forecast?.yield_ctha != null ? Math.min((forecast.yield_ctha / 50) * 100, 100) : 0
       if (ax === 'Влажность')   val = Math.max(0, 100 - Math.abs(sensors.soil_moisture - 50) * 2)
       if (ax === 'Осадки')      val = Math.min((precip / 25) * 100, 100)
       if (ax === 'Температура') val = Math.max(0, ((40 - sensors.air_temp) / 25) * 100)
@@ -50,7 +50,7 @@ function buildRadarData(items) {
 
 // Ячейка с подсветкой best/worst
 function Cell({ value, isBest, isWorst, children }) {
-  const bg = isBest ? 'rgba(76,175,80,0.12)' : isWorst ? 'rgba(239,68,68,0.10)' : 'transparent'
+  const bg = isBest ? '#f0fdf4' : isWorst ? '#fef2f2' : 'transparent'
   return (
     <td style={{
       padding: '10px 16px', textAlign: 'center', fontSize: 13,
@@ -86,8 +86,8 @@ function CompareTable({ items }) {
         const m = item.sensors.soil_moisture
         const warn = m > 90 || m < 20
         return (
-          <span style={{ color: warn ? 'var(--color-anomaly)' : 'inherit' }}>
-            {m}%{warn && ' ⚠'}
+          <span style={{ color: warn ? 'var(--color-anomaly)' : 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {m}%{warn && <IconWarning size={13} color="var(--color-anomaly)" />}
           </span>
         )
       },
@@ -117,7 +117,7 @@ function CompareTable({ items }) {
             {items.map(({ field }, i) => (
               <th key={field.field_id} style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 700, color: FIELD_COLORS[i], borderBottom: '1px solid var(--color-border)' }}>
                 <div>{field.name.split('—')[0].trim()}</div>
-                <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{field.crop}</div>
+                <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-text-muted)' }}>{CROP_LABEL[field.crop] ?? field.crop}</div>
               </th>
             ))}
           </tr>
@@ -127,8 +127,8 @@ function CompareTable({ items }) {
             const scores = row.numeric
               ? items.map(item => (row.score ? row.score(item) : (row.higherIsBetter ? 1 : -1) * row.get(item)))
               : null
-            const maxScore = scores ? Math.max(...scores) : null
-            const minScore = scores ? Math.min(...scores) : null
+            const maxScore = scores?.length ? Math.max(...scores) : null
+            const minScore = scores?.length ? Math.min(...scores) : null
 
             return (
               <tr key={row.label}>
@@ -215,7 +215,7 @@ export default function Compare() {
       const field    = allFields.find(f => f.field_id === id)
       const forecast = getMockForecastForField(id)
       const sensors  = FIELD_SENSORS[id] || { soil_moisture: 45, air_temp: 22 }
-      const precip   = +forecast.precip_forecast_7days.reduce((s, v) => s + v, 0).toFixed(1)
+      const precip   = +((forecast?.precip_forecast_7days ?? []).filter(v => v != null).reduce((s, v) => s + v, 0).toFixed(1))
       return { field, forecast, sensors, precip }
     })
     setCompared(result)
@@ -225,10 +225,9 @@ export default function Compare() {
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
+        <h1 className="page-title">
           Сравнение участков
         </h1>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 24 }}>
@@ -302,7 +301,7 @@ export default function Compare() {
                   <PolarGrid stroke="#e5e7eb" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
                   <Tooltip
-                    contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12, color: 'var(--color-text)' }}
                   />
                   {compared.map(({ field }, i) => (
                     <Radar

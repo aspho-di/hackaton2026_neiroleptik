@@ -1,16 +1,20 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { getUser } from '../auth'
 import WheatEmoji from './icons/WheatEmoji'
-import { IconBarChart, IconDroplets, IconBell, IconCompare } from './icons/Icons'
+import { IconBarChart, IconDroplets, IconBell, IconCompare, IconSun, IconMoon, IconCalendar } from './icons/Icons'
 import { MOCK_ALERTS } from '../mockData'
 
 function Avatar({ name, size = 36 }) {
-  const initials = (name || 'AG')
-    .split(' ')
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
+  const [avatarUrl, setAvatarUrl] = useState(() => getUser()?.avatar || null)
+
+  useEffect(() => {
+    function sync() { setAvatarUrl(getUser()?.avatar || null) }
+    window.addEventListener('avatar-updated', sync)
+    return () => window.removeEventListener('avatar-updated', sync)
+  }, [])
+
+  const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
   return (
     <div
@@ -24,11 +28,15 @@ function Avatar({ name, size = 36 }) {
         flexShrink: 0, cursor: 'pointer',
         border: '2px solid rgba(255,255,255,0.3)',
         transition: 'opacity 0.15s', userSelect: 'none',
+        overflow: 'hidden',
       }}
       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
-      {initials}
+      {avatarUrl
+        ? <img src={avatarUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setAvatarUrl(null)} />
+        : initials
+      }
     </div>
   )
 }
@@ -47,10 +55,20 @@ function NavIconBtn({ to, icon, label, badge }) {
         textDecoration: 'none',
         flexShrink: 0,
       })}
+      className={({ isActive }) => isActive ? 'nav-icon-active' : ''}
       onMouseEnter={e => { if (!e.currentTarget.style.background.includes('0.18')) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
       onMouseLeave={e => { if (!e.currentTarget.style.background.includes('0.18')) e.currentTarget.style.background = 'transparent' }}
     >
       {icon}
+      <span className="nav-active-dot" style={{
+        position: 'absolute', bottom: 4, left: '50%',
+        transform: 'translateX(-50%)',
+        width: 4, height: 4, borderRadius: '50%',
+        background: '#fff',
+        opacity: 0,
+        transition: 'opacity 0.2s',
+        pointerEvents: 'none',
+      }} />
       {badge > 0 && (
         <span style={{
           position: 'absolute', top: 4, right: 4,
@@ -76,6 +94,20 @@ export default function Navbar() {
   const readIds     = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
   const unreadCount = MOCK_ALERTS.filter(a => !readIds.includes(a.id)).length
 
+  const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
+
+  function toggleTheme() {
+    const next = !dark
+    setDark(next)
+    if (next) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+      try { localStorage.setItem('theme', 'dark') } catch {}
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+      try { localStorage.setItem('theme', 'light') } catch {}
+    }
+  }
+
   return (
     <nav style={{
       background: 'var(--color-primary)',
@@ -84,7 +116,7 @@ export default function Navbar() {
       zIndex: 100,
       boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
     }}>
-      <div style={{
+      <div className="nav-inner" style={{
         maxWidth: '1400px',
         margin: '0 auto',
         padding: '0 24px',
@@ -94,9 +126,9 @@ export default function Navbar() {
         justifyContent: 'space-between',
       }}>
         {/* Logo */}
-        <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
+        <NavLink to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
           <WheatEmoji size={28} />
-          <span style={{
+          <span className="nav-brand-label" style={{
             color: '#fff', fontFamily: 'Montserrat, sans-serif',
             fontWeight: 700, fontSize: '16px', letterSpacing: '0.01em',
           }}>
@@ -105,12 +137,32 @@ export default function Navbar() {
         </NavLink>
 
         {/* Nav icons + Avatar (right group) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+        <div className="nav-icon-gap" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
           <NavIconBtn to="/history"    icon={<IconBarChart  size={19} color="rgba(255,255,255,0.85)" />} label="История урожайности" />
           <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
           <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />
+          <NavIconBtn to="/calendar"   icon={<IconCalendar  size={19} color="rgba(255,255,255,0.85)" />} label="Сезонный календарь" />
           <NavIconBtn to="/alerts"     icon={<IconBell      size={19} color="rgba(255,255,255,0.85)" />} label="Уведомления" badge={unreadCount} />
-          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 8px' }} />
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 4px 0 8px' }} />
+          <button
+            onClick={toggleTheme}
+            title={dark ? 'Светлая тема' : 'Тёмная тема'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 8,
+              background: 'transparent', border: 'none',
+              cursor: 'pointer', flexShrink: 0,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.10)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            {dark
+              ? <IconSun  size={19} color="rgba(255,255,255,0.85)" />
+              : <IconMoon size={19} color="rgba(255,255,255,0.85)" />
+            }
+          </button>
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 8px 0 4px' }} />
           <div onClick={() => navigate('/profile')} style={{ flexShrink: 0 }}>
             <Avatar name={name} size={36} />
           </div>

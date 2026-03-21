@@ -23,8 +23,6 @@ RUN apk --no-cache add ca-certificates tzdata
 # Копируем бинарник из правильного пути
 COPY --from=builder /app/bin/main ./bin/main
 
-# Копируем mocks если есть (не критично)
-COPY --from=builder /app/mocks ./mocks
 
 EXPOSE 8080
 

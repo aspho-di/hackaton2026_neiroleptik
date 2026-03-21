@@ -39,6 +39,7 @@ func main() {
 	_ = godotenv.Load()
 
 	cfg := configs.LoadConfig()
+	log.Printf("Redis cfg.Redis.Password = %q", cfg.Redis.Password)
 
 	db, err := database.NewPostgres(database.DefaultPostgresConfig(cfg.GetDatabaseDSN()))
 	if err != nil {
@@ -46,7 +47,12 @@ func main() {
 	}
 	defer database.Close(db)
 
-	rdb, err := redispkg.NewRedis(redispkg.DefaultRedisConfig(cfg.GetRedisAddress()))
+	rdb, err := redispkg.NewRedis(&redispkg.RedisConfig{
+		Addr:     cfg.GetRedisAddress(),
+		Password: cfg.Redis.Password,
+		DB:       0,
+		PoolSize: 10,
+	})
 	if err != nil {
 		log.Fatalf("❌ Redis connection failed: %v", err)
 	}

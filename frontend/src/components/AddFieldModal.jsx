@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { CROPS } from '../constants/districts'
 import { fetchDistricts, createField } from '../api/client'
 import WheatEmoji from './icons/WheatEmoji'
+import { IconX } from './icons/Icons'
 
 const DISTRICT_COORDS = {
   'Азовский':              { lat: 47.11, lon: 39.42 },
@@ -62,7 +63,7 @@ export function loadSavedFields() {
 
 function saveField(field) {
   const saved = loadSavedFields()
-  localStorage.setItem(FIELDS_KEY, JSON.stringify([...saved, field]))
+  try { localStorage.setItem(FIELDS_KEY, JSON.stringify([...saved, field])) } catch {}
 }
 
 const inputStyle = {
@@ -72,7 +73,7 @@ const inputStyle = {
   borderRadius: '8px',
   fontSize: '14px',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--color-surface)',
   color: 'var(--color-text)',
   transition: 'border-color 0.15s, box-shadow 0.15s',
   fontFamily: 'Inter, sans-serif',
@@ -107,7 +108,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
   const [form, setForm] = useState({
     title: '',
     number: '',
-    crop: 'пшеница',
+    crop: 'wheat',
     district: '',
     area: '',
     temp: '',
@@ -127,10 +128,10 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
 
   // Load districts from API (with fallback)
   useEffect(() => {
-    fetchDistricts().then(data => {
-      setDistricts(data)
-      setLoadingDistricts(false)
-    })
+    fetchDistricts()
+      .then(data => { if (Array.isArray(data)) setDistricts(data) })
+      .catch(() => {})
+      .finally(() => setLoadingDistricts(false))
   }, [])
 
   function handleChange(e) {
@@ -186,13 +187,12 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
       longitude:      coords.lon,
       user_id:        1,
     }
-    const result = await createField(payload)
+    let result = null
+    try { result = await createField(payload) } catch {}
 
     if (result) {
-      // Бэкенд сохранил — адаптируем ответ к фронтовому формату
       onAdd({ ...newField, field_id: result.id ?? fieldId })
     } else {
-      // Fallback — localStorage
       saveField(newField)
       onAdd(newField)
     }
@@ -217,13 +217,13 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff',
+          background: 'var(--color-surface)',
           borderRadius: '16px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           width: '100%',
           maxWidth: '520px',
           maxHeight: '90vh',
-          overflowY: 'auto',
+          overflowY: 'overlay',
           padding: '28px 28px 24px',
         }}
       >
@@ -235,9 +235,11 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, padding: '4px' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, padding: '4px', display: 'flex', alignItems: 'center', borderRadius: 6, transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
           >
-            ×
+            <IconX size={20} color="currentColor" />
           </button>
         </div>
 
@@ -280,7 +282,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <Field label="Культура">
                 <select style={inputStyle} {...focusHandlers} name="crop" value={form.crop} onChange={handleChange}>
-                  {CROPS.map(c => <option key={c} value={c}>{c}</option>)}
+                  {CROPS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
               </Field>
 
