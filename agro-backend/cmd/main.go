@@ -37,6 +37,7 @@ import (
 
 func main() {
 	_ = godotenv.Load()
+	log.Printf("REDIS_PASSWORD = %q", os.Getenv("REDIS_PASSWORD"))
 
 	cfg := configs.LoadConfig()
 
