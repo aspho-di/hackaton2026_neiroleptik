@@ -34,7 +34,7 @@ function Avatar({ name, size = 36 }) {
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
       {avatarUrl
-        ? <img src={avatarUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ? <img src={avatarUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setAvatarUrl(null)} />
         : initials
       }
     </div>
@@ -101,10 +101,10 @@ export default function Navbar() {
     setDark(next)
     if (next) {
       document.documentElement.setAttribute('data-theme', 'dark')
-      localStorage.setItem('theme', 'dark')
+      try { localStorage.setItem('theme', 'dark') } catch {}
     } else {
       document.documentElement.removeAttribute('data-theme')
-      localStorage.setItem('theme', 'light')
+      try { localStorage.setItem('theme', 'light') } catch {}
     }
   }
 
@@ -126,7 +126,7 @@ export default function Navbar() {
         justifyContent: 'space-between',
       }}>
         {/* Logo */}
-        <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
+        <NavLink to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
           <WheatEmoji size={28} />
           <span className="nav-brand-label" style={{
             color: '#fff', fontFamily: 'Montserrat, sans-serif',

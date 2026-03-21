@@ -56,7 +56,7 @@ export default function Onboarding({ onDone }) {
   function finish() {
     setExiting(true)
     setTimeout(() => {
-      localStorage.setItem('onboarding_done', '1')
+      try { localStorage.setItem('onboarding_done', '1') } catch {}
       onDone()
     }, 300)
   }

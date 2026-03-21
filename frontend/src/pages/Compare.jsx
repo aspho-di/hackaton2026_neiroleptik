@@ -34,7 +34,7 @@ function buildRadarData(items) {
     const entry = { subject: ax }
     items.forEach(({ field, forecast, sensors, precip }, i) => {
       let val = 0
-      if (ax === 'Урожайность') val = Math.min((forecast.yield_ctha / 50) * 100, 100)
+      if (ax === 'Урожайность') val = forecast?.yield_ctha != null ? Math.min((forecast.yield_ctha / 50) * 100, 100) : 0
       if (ax === 'Влажность')   val = Math.max(0, 100 - Math.abs(sensors.soil_moisture - 50) * 2)
       if (ax === 'Осадки')      val = Math.min((precip / 25) * 100, 100)
       if (ax === 'Температура') val = Math.max(0, ((40 - sensors.air_temp) / 25) * 100)
@@ -215,7 +215,7 @@ export default function Compare() {
       const field    = allFields.find(f => f.field_id === id)
       const forecast = getMockForecastForField(id)
       const sensors  = FIELD_SENSORS[id] || { soil_moisture: 45, air_temp: 22 }
-      const precip   = +forecast.precip_forecast_7days.reduce((s, v) => s + v, 0).toFixed(1)
+      const precip   = +(forecast?.precip_forecast_7days ?? []).reduce((s, v) => s + v, 0).toFixed(1)
       return { field, forecast, sensors, precip }
     })
     setCompared(result)

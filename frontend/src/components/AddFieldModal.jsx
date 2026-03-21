@@ -63,7 +63,7 @@ export function loadSavedFields() {
 
 function saveField(field) {
   const saved = loadSavedFields()
-  localStorage.setItem(FIELDS_KEY, JSON.stringify([...saved, field]))
+  try { localStorage.setItem(FIELDS_KEY, JSON.stringify([...saved, field])) } catch {}
 }
 
 const inputStyle = {
@@ -187,13 +187,12 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
       longitude:      coords.lon,
       user_id:        1,
     }
-    const result = await createField(payload)
+    let result = null
+    try { result = await createField(payload) } catch {}
 
     if (result) {
-      // Бэкенд сохранил — адаптируем ответ к фронтовому формату
       onAdd({ ...newField, field_id: result.id ?? fieldId })
     } else {
-      // Fallback — localStorage
       saveField(newField)
       onAdd(newField)
     }

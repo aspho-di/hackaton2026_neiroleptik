@@ -77,7 +77,7 @@ export default function FieldMap({ latitude, longitude, fieldName }) {
         instanceRef.current = null
       }
     }
-  }, [lat, lng, fieldName])
+  }, [latitude, longitude, fieldName])
 
   return (
     <div style={{

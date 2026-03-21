@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import FieldDetail from './pages/FieldDetail'
 import Profile from './pages/Profile'
@@ -23,8 +24,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/login"    element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* Landing — публичная */}
+        <Route path="/" element={<Landing />} />
+
         {/* Защищённые маршруты */}
-        <Route path="/" element={
+        <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
         <Route path="/field/:id" element={
