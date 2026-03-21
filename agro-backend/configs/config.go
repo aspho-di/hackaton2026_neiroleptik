@@ -29,8 +29,9 @@ type DatabaseConfig struct {
 
 // RedisConfig настройки подключения к Redis
 type RedisConfig struct {
-	Host string
-	Port string
+	Host     string
+	Port     string
+	Password string
 }
 
 // LoadConfig загружает конфигурацию из переменных окружения
