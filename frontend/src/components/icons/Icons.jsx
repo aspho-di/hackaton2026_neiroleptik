@@ -95,3 +95,55 @@ export const IconMap = ({ size = 16, color = 'currentColor' }) => (
     <line x1="16" y1="6" x2="16" y2="22"/>
   </svg>
 )
+
+export const IconSun = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <circle cx="12" cy="12" r="5"/>
+    <line x1="12" y1="1" x2="12" y2="3"/>
+    <line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/>
+    <line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </svg>
+)
+
+export const IconBarChart = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/>
+    <line x1="2" y1="20" x2="22" y2="20"/>
+  </svg>
+)
+
+export const IconBell = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+)
+
+export const IconDroplets = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.09 3 12.25c0 2.22 1.8 4.05 4 4.05z"/>
+    <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/>
+  </svg>
+)
+
+export const IconTrendingUp = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+    <polyline points="17 6 23 6 23 12"/>
+  </svg>
+)
+
+export const IconCompare = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <rect x="2" y="3" width="8" height="18" rx="1"/>
+    <rect x="14" y="3" width="8" height="18" rx="1"/>
+    <line x1="12" y1="8" x2="12" y2="16" strokeDasharray="2 2"/>
+  </svg>
+)
