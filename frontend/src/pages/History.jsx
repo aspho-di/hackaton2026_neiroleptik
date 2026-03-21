@@ -72,21 +72,6 @@ function pearson(xs, ys) {
   return den === 0 ? 0 : +(num / den).toFixed(2)
 }
 
-// ── ML metrics (global, model-level) ─────────────────────────────────────────
-const ML_METRICS = [
-  { label: 'RMSE',               value: '3.4',  unit: 'ц/га', desc: 'Среднеквадратичная ошибка',   color: 'var(--color-normal)' },
-  { label: 'MAE',                value: '2.6',  unit: 'ц/га', desc: 'Средняя абсолютная ошибка',  color: 'var(--color-normal)' },
-  { label: 'R²',                 value: '0.87', unit: '',     desc: 'Коэффициент детерминации',    color: '#3b82f6' },
-  { label: 'Accuracy аномалий',  value: '94.3', unit: '%',    desc: 'Точность обнаружения аномалий', color: '#8b5cf6' },
-]
-const FEATURE_IMPORTANCE = [
-  { feature: 'soil_moisture',   pct: 34, color: '#3b82f6' },
-  { feature: 'precipitation',   pct: 28, color: '#4caf50' },
-  { feature: 'air_temperature', pct: 19, color: '#f59e0b' },
-  { feature: 'wind_speed',      pct: 9,  color: '#8b5cf6' },
-  { feature: 'hot_days',        pct: 7,  color: '#ef4444' },
-  { feature: 'humidity',        pct: 3,  color: '#6b7c6e' },
-]
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const card = {
@@ -670,50 +655,6 @@ export default function History() {
             </Bar>
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* Block 8 — ML metrics */}
-      <div style={{ ...card, marginBottom: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
-          <div>
-            <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)' }}>
-              Метрики ML-модели
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
-              Gradient Boosting Regressor · Train/Test: 80% / 20% · Датасет: 12 450 записей
-            </div>
-          </div>
-          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(76,175,80,0.12)', color: 'var(--color-normal)', fontWeight: 600 }}>
-            Аномалий в датасете: 847 (6.8%)
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, margin: '20px 0' }}>
-          {ML_METRICS.map(m => (
-            <div key={m.label} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, marginBottom: 6 }}>{m.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: m.color, lineHeight: 1 }}>
-                {m.value}<span style={{ fontSize: 13, fontWeight: 500, marginLeft: 2 }}>{m.unit}</span>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>{m.desc}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--color-text)', marginBottom: 12 }}>Важность признаков</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {FEATURE_IMPORTANCE.map(f => (
-            <div key={f.feature}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{f.feature}</span>
-                <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{f.pct}%</span>
-              </div>
-              <div style={{ height: 8, background: 'var(--color-border)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${f.pct}%`, background: f.color, borderRadius: 4, transition: 'width 0.6s ease' }} />
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
     </div>
