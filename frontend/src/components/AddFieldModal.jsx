@@ -73,7 +73,7 @@ const inputStyle = {
   borderRadius: '8px',
   fontSize: '14px',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--color-surface)',
   color: 'var(--color-text)',
   transition: 'border-color 0.15s, box-shadow 0.15s',
   fontFamily: 'Inter, sans-serif',
@@ -218,7 +218,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff',
+          background: 'var(--color-surface)',
           borderRadius: '16px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           width: '100%',

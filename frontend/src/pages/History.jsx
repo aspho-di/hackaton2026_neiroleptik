@@ -27,11 +27,11 @@ function YieldTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6 }}>{label}</div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6, color: 'var(--color-text)' }}>{label}</div>
       <div style={{ color: '#4caf50' }}>Урожайность: <b>{d?.yield_ctha} ц/га</b></div>
       <div style={{ color: '#3b82f6' }}>Осадки: {d?.precip_mm} мм</div>
-      <div style={{ color: d?.hot_days > 20 ? '#ef4444' : '#6b7c6e' }}>Жарких дней: {d?.hot_days}</div>
+      <div style={{ color: d?.hot_days > 20 ? '#ef4444' : 'var(--color-text-muted)' }}>Жарких дней: {d?.hot_days}</div>
     </div>
   )
 }
@@ -39,8 +39,8 @@ function YieldTooltip({ active, payload, label }) {
 function PrecipTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6 }}>{label}</div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, marginBottom: 6, color: 'var(--color-text)' }}>{label}</div>
       {payload.map(p => (
         <div key={p.dataKey} style={{ color: p.dataKey === 'precip_mm' ? '#3b82f6' : (p.value >= 0 ? '#16a34a' : '#ef4444') }}>
           {p.dataKey === 'precip_mm' ? 'Осадки' : 'Водный баланс'}: {p.value > 0 && p.dataKey !== 'precip_mm' ? '+' : ''}{p.value} мм

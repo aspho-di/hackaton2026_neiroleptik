@@ -91,7 +91,7 @@ export default function Dashboard() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: '#fff',
+                background: 'var(--color-surface)',
                 border: '1px solid var(--color-accent)',
                 borderRadius: '10px',
                 padding: '10px 24px',
@@ -108,7 +108,7 @@ export default function Dashboard() {
                 e.currentTarget.style.color = '#fff'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = '#fff'
+                e.currentTarget.style.background = 'var(--color-surface)'
                 e.currentTarget.style.color = 'var(--color-accent)'
               }}
             >

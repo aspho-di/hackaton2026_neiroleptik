@@ -11,7 +11,7 @@ const inputStyle = {
   borderRadius: '8px',
   fontSize: '14px',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--color-surface)',
   color: 'var(--color-text)',
   transition: 'border-color 0.15s, box-shadow 0.15s',
 }

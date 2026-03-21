@@ -44,14 +44,16 @@ export async function fetchForecast(field_id, latitude, longitude) {
     })
     if (!res.ok) throw new Error()
     const data = await res.json()
+    const isAnomaly  = data.prediction?.is_anomaly ?? false
+    const confidence = data.prediction?.confidence ?? 0
     return {
-      yield_ctha:               data.prediction?.yield_prediction ?? null,
-      confidence:               data.prediction?.confidence ?? 0,
-      confidence_label:         (data.prediction?.confidence ?? 0) > 0.7 ? 'Высокая' : 'Низкая',
-      anomaly_flag:             data.prediction?.is_anomaly ?? false,
+      yield_ctha:                data.prediction?.yield_prediction ?? null,
+      confidence,
+      confidence_label:          confidence > 0.7 ? 'Высокая' : 'Низкая',
+      anomaly_flag:              isAnomaly,
       irrigation_recommendation: data.prediction?.irrigation_recommendation ?? null,
-      warning:                  data.warning ?? null,
-      status:                   data.status ?? 'normal',
+      warning:                   data.warning ?? null,
+      status:                    isAnomaly ? 'anomaly' : confidence < 0.7 ? 'warning' : 'normal',
     }
   } catch {
     return null
@@ -98,25 +100,47 @@ export async function fetchIrrigationRecommend(field_id, crop, soil_moisture_per
 }
 
 // ── Уведомления ───────────────────────────────────────────────────────────────
+const SEV_MAP = { low: 'info', medium: 'warning', critical: 'critical' }
+
 export async function fetchAlerts() {
   try {
-    const res = await fetch(`${BASE_URL}/api/v1/alerts`)
+    // Сначала пробуем frontend-friendly эндпоинт с type/description/action/district
+    const res = await fetch(`${BASE_URL}/api/alerts`)
     if (!res.ok) throw new Error()
     const data = await res.json()
     return data.map(a => ({
       id:         String(a.id),
-      type:       a.type     ?? 'weather',
-      severity:   a.severity === 'medium' ? 'warning' : (a.severity ?? 'info'),
-      title:      a.message  ?? 'Уведомление',
-      message:    a.message  ?? '',
-      action:     null,
-      district:   '',
+      type:       a.type      ?? 'weather',
+      severity:   SEV_MAP[a.severity] ?? a.severity ?? 'info',
+      title:      a.message   ?? 'Уведомление',
+      message:    a.description ?? a.message ?? '',
+      action:     a.action    ?? null,
+      district:   a.district  ?? '',
       created_at: a.created_at,
-      is_read:    a.is_read  ?? false,
-      field_id:   a.field_id,
+      is_read:    a.is_read   ?? false,
+      field_id:   a.field_id  ?? null,
     }))
   } catch {
-    return null
+    try {
+      // Fallback на внутренний эндпоинт
+      const res2 = await fetch(`${BASE_URL}/api/v1/alerts`)
+      if (!res2.ok) throw new Error()
+      const data2 = await res2.json()
+      return data2.map(a => ({
+        id:         String(a.id),
+        type:       'weather',
+        severity:   SEV_MAP[a.severity] ?? 'info',
+        title:      a.message  ?? 'Уведомление',
+        message:    a.message  ?? '',
+        action:     null,
+        district:   '',
+        created_at: a.created_at,
+        is_read:    a.is_read  ?? false,
+        field_id:   a.field_id ?? null,
+      }))
+    } catch {
+      return null
+    }
   }
 }
 
