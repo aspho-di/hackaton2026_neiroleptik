@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import FieldList from '../components/FieldList'
 import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
 import { getUser } from '../auth'
@@ -47,9 +47,20 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'))
 
   // Search & filter state
-  const [search, setSearch]           = useState('')
+  const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [cropFilter, setCropFilter]   = useState('all')
+  const [cropFilter, setCropFilter]     = useState('all')
+  const [filterOpen, setFilterOpen]     = useState(false)
+  const filterRef                       = useRef(null)
+
+  useEffect(() => {
+    if (!filterOpen) return
+    function handleClick(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [filterOpen])
 
   const allFields = savedFields
 
@@ -96,91 +107,147 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Search & filters */}
+        {/* Search + filter button */}
         {allFields.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
 
-            {/* Row 1: search + crop pills */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: 300 }}>
-                <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-                  <IconSearch size={14} color="var(--color-text-muted)" />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Поиск по названию..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{
-                    width: '100%', padding: '8px 12px 8px 33px',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 8, fontSize: 13,
-                    background: 'var(--color-surface)', color: 'var(--color-text)',
-                    outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
-                  }}
-                  onFocus={e => { e.target.style.borderColor = 'var(--color-accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(76,175,80,0.12)' }}
-                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none' }}
-                />
-              </div>
-
-              {/* Crop pills */}
-              {[{ key: 'all', label: 'Все' }, ...CROPS].map(c => (
-                <button
-                  key={c.key}
-                  onClick={() => setCropFilter(c.key)}
-                  style={{
-                    padding: '7px 13px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
-                    border: `1px solid ${cropFilter === c.key ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                    background: cropFilter === c.key ? 'var(--color-accent-light)' : 'var(--color-surface)',
-                    color: cropFilter === c.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                    fontWeight: cropFilter === c.key ? 700 : 400,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {c.label}
-                </button>
-              ))}
+            {/* Search */}
+            <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: 320 }}>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+                <IconSearch size={14} color="var(--color-text-muted)" />
+              </span>
+              <input
+                type="text"
+                placeholder="Поиск по названию..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px 12px 8px 33px',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8, fontSize: 13,
+                  background: 'var(--color-surface)', color: 'var(--color-text)',
+                  outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(76,175,80,0.12)' }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none' }}
+              />
             </div>
 
-            {/* Row 2: status pills + clear */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              {STATUS_FILTERS.map(sf => (
-                <button
-                  key={sf.key}
-                  onClick={() => setStatusFilter(sf.key)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '6px 11px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
-                    border: `1px solid ${statusFilter === sf.key ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                    background: statusFilter === sf.key ? 'var(--color-accent-light)' : 'var(--color-surface)',
-                    color: statusFilter === sf.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                    fontWeight: statusFilter === sf.key ? 700 : 400,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {sf.dot && <span style={{ width: 7, height: 7, borderRadius: '50%', background: sf.dot, flexShrink: 0 }} />}
-                  {sf.label}
-                </button>
-              ))}
-
-            {/* Clear filters */}
-            {hasFilters && (
+            {/* Filter toggle button */}
+            <div ref={filterRef} style={{ position: 'relative' }}>
               <button
-                onClick={clearFilters}
+                onClick={() => setFilterOpen(o => !o)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '6px 11px', marginLeft: 4,
-                  borderRadius: 8, border: '1px solid var(--color-border)',
-                  background: 'transparent', color: 'var(--color-text-muted)',
-                  fontSize: 13, cursor: 'pointer', transition: 'color 0.15s',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                  border: `1px solid ${hasFilters ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                  background: hasFilters ? 'var(--color-accent-light)' : 'var(--color-surface)',
+                  color: hasFilters ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                  fontWeight: hasFilters ? 700 : 400,
+                  transition: 'all 0.15s',
+                  position: 'relative',
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-anomaly)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
               >
-                <IconX size={13} color="currentColor" />
-                Сбросить
+                {/* Filter icon */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+                </svg>
+                Фильтры
+                {hasFilters && (
+                  <span style={{
+                    minWidth: 17, height: 17, borderRadius: 9,
+                    background: 'var(--color-accent)', color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 4px',
+                  }}>
+                    {(statusFilter !== 'all' ? 1 : 0) + (cropFilter !== 'all' ? 1 : 0)}
+                  </span>
+                )}
               </button>
-            )}
+
+              {/* Dropdown panel */}
+              {filterOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+                  zIndex: 200,
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 28px rgba(0,0,0,0.14)',
+                  padding: '18px 18px 14px',
+                  minWidth: 280,
+                  animation: 'fadeIn 0.15s ease',
+                }}>
+                  {/* Статус */}
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                    Статус
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                    {STATUS_FILTERS.map(sf => (
+                      <button
+                        key={sf.key}
+                        onClick={() => setStatusFilter(sf.key)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '5px 11px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                          border: `1px solid ${statusFilter === sf.key ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                          background: statusFilter === sf.key ? 'var(--color-accent-light)' : 'var(--color-bg)',
+                          color: statusFilter === sf.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                          fontWeight: statusFilter === sf.key ? 700 : 400,
+                          transition: 'all 0.12s',
+                        }}
+                      >
+                        {sf.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: sf.dot, flexShrink: 0 }} />}
+                        {sf.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Культура */}
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                    Культура
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                    {[{ key: 'all', label: 'Все' }, ...CROPS].map(c => (
+                      <button
+                        key={c.key}
+                        onClick={() => setCropFilter(c.key)}
+                        style={{
+                          padding: '5px 11px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                          border: `1px solid ${cropFilter === c.key ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                          background: cropFilter === c.key ? 'var(--color-accent-light)' : 'var(--color-bg)',
+                          color: cropFilter === c.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                          fontWeight: cropFilter === c.key ? 700 : 400,
+                          transition: 'all 0.12s',
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Сбросить */}
+                  {hasFilters && (
+                    <button
+                      onClick={() => { clearFilters(); setFilterOpen(false) }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '6px 12px', borderRadius: 8,
+                        border: '1px solid var(--color-border)',
+                        background: 'transparent', color: 'var(--color-text-muted)',
+                        fontSize: 12, cursor: 'pointer', transition: 'color 0.15s',
+                        width: '100%', justifyContent: 'center',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--color-anomaly)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
+                    >
+                      <IconX size={12} color="currentColor" />
+                      Сбросить все фильтры
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
