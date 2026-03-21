@@ -3,12 +3,12 @@ import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
 import { getUser, removeUser } from '../auth'
 import { useFields } from '../hooks/useFields'
+import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
+import WheatEmoji from '../components/icons/WheatEmoji'
 
 function getCompletedRecs() {
   return Number(localStorage.getItem('completed_recommendations') || 0)
 }
-import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
-import WheatEmoji from '../components/icons/WheatEmoji'
 
 function Avatar({ name, size = 80 }) {
   const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -76,7 +76,7 @@ function StatCard({ icon, value, label, valueColor }) {
 export default function Profile() {
   const navigate = useNavigate()
   const user = getUser()
-  const { fields: allFields } = useFields()
+  const { fields } = useFields()
 
   // Данные пользователя из localStorage (заполненные при регистрации/входе)
   const name         = user?.name         || 'Агроном'
@@ -190,7 +190,7 @@ export default function Profile() {
             <IconMap size={16} color="var(--color-text-muted)" />
             <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Закреплённые поля</h2>
           </div>
-          {allFields.map((field, i) => (
+          {fields.map((field, i) => (
             <div
               key={field.field_id}
               onClick={() => navigate(`/field/${field.field_id}`)}
@@ -199,7 +199,7 @@ export default function Profile() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '13px 20px',
-                borderBottom: i < allFields.length - 1 ? '1px solid var(--color-border)' : 'none',
+                borderBottom: i < fields.length - 1 ? '1px solid var(--color-border)' : 'none',
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}
