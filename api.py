@@ -18,7 +18,7 @@ api.py — FastAPI-сервис рекомендаций по поливу с Po
 from contextlib import asynccontextmanager
 from datetime import date
 from typing import Any
-
+import os
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -30,6 +30,14 @@ from irrigation import recommend_irrigation
 from validate import validate_sensor_data
 
 FORECAST_URL = os.getenv("FORECAST_SERVICE_URL", "http://localhost:8001/predict/forecast")
+
+# FIX B3: базовая проверка URL при старте модуля — отсутствие схемы
+# обнаруживается сразу, а не при первом реальном запросе с невнятной 502.
+if not FORECAST_URL.startswith(("http://", "https://")):
+    raise RuntimeError(
+        f"FORECAST_SERVICE_URL имеет некорректный формат: {FORECAST_URL!r}. "
+        "Ожидается URL вида http://host:port/path"
+    )
 
 
 # ── Lifespan: инициализация БД при старте ─────────────────────────────────────
@@ -111,18 +119,23 @@ async def _get_forecast() -> list[dict[str, Any]]:
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             resp = await client.get(FORECAST_URL)
+            # FIX B1: сохраняем status_code до raise_for_status — после поднятия
+            # исключения соединение закрывается и exc.response может быть недоступен
+            # при некоторых конфигурациях прокси/транспорта.
+            status_code = resp.status_code
             resp.raise_for_status()
-        except httpx.HTTPStatusError as exc:
+            # Читаем тело внутри with-блока, пока соединение ещё открыто
+            data = resp.json()
+        except httpx.HTTPStatusError:
             raise HTTPException(
                 status_code=502,
-                detail=f"Сервис прогноза вернул {exc.response.status_code}: {FORECAST_URL}",
+                detail=f"Сервис прогноза вернул {status_code}: {FORECAST_URL}",
             )
         except httpx.RequestError as exc:
             raise HTTPException(
                 status_code=502,
                 detail=f"Нет соединения с сервисом прогноза ({FORECAST_URL}): {exc}",
             )
-    data = resp.json()
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
@@ -140,9 +153,38 @@ async def health() -> dict:
 
 
 @app.post("/validate")
-async def validate(payload: SensorPayload) -> dict:
-    """Валидация входных данных с датчиков."""
-    return validate_sensor_data(payload.model_dump())
+async def validate(
+    payload: SensorPayload,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Валидация входных данных с датчиков.
+
+    FIX B2: помимо физической валидации датчиков, проверяет существование
+    профиля культуры в БД — чтобы /validate и /recommend давали одинаковый
+    результат для одних и тех же входных данных.
+    """
+    result = validate_sensor_data(payload.model_dump())
+    if result["status"] == "anomaly":
+        return result
+
+    # Проверяем культуру: если профиля нет — предупреждаем сразу,
+    # не дожидаясь вызова /recommend.
+    profile = crud.get_profile(db, payload.crop)
+    if profile is None:
+        return {
+            "status": "anomaly",
+            "confidence": "low",
+            "anomalies": [
+                f"crop: профиль культуры «{payload.crop}» не найден в БД"
+            ],
+            "message": (
+                f"Датчики в норме, но культура «{payload.crop}» неизвестна. "
+                "Создайте профиль через POST /config/profiles."
+            ),
+        }
+
+    return result
 
 
 @app.post("/recommend/irrigation")
@@ -166,8 +208,8 @@ async def recommend(
             status_code=404,
             detail=(
                 f"Профиль культуры «{payload.crop}» не найден. "
-                "Создайте через POST /config/profiles или используйте: "
-                + ", ".join(p.crop_name for p in crud.get_all_profiles(db))
+                "Создайте через POST /config/profiles или получите список доступных культур "
+                "через GET /config/profiles."
             ),
         )
 
@@ -235,15 +277,21 @@ def patch_profile(
 
     Передавайте только те поля, которые нужно изменить.
     """
-    profile = crud.get_profile(db, crop_name)
+    # FIX B4: нормализуем path-параметр — GET /profiles/Wheat и /profiles/wheat
+    # должны вести себя одинаково.
+    normalized = crop_name.lower().strip()
+    profile = crud.get_profile(db, normalized)
     if profile is None:
         raise HTTPException(status_code=404, detail=f"Культура «{crop_name}» не найдена")
 
-    # Собираем только непустые поля (кроме служебных)
+    # Собираем только явно переданные поля (кроме служебных).
+    # Используем model_fields_set вместо `v is not None`, чтобы корректно
+    # обрабатывать нулевые значения (0.0, False) — они легитимны и не должны
+    # отфильтровываться.
     updates = {
         k: v
         for k, v in body.model_dump().items()
-        if v is not None and k not in ("changed_by", "comment")
+        if k in body.model_fields_set and k not in ("changed_by", "comment")
     }
 
     updated = crud.update_profile(
@@ -274,7 +322,8 @@ def get_history_by_crop(
     db: Session = Depends(get_db),
 ) -> list[dict]:
     """История изменений порогов для конкретной культуры."""
-    return [h.to_dict() for h in crud.get_history(db, crop_name=crop_name, limit=limit)]
+    # FIX B4: нормализуем для единообразия с хранимыми значениями
+    return [h.to_dict() for h in crud.get_history(db, crop_name=crop_name.lower().strip(), limit=limit)]
 
 
 # ── Точка входа ───────────────────────────────────────────────────────────────

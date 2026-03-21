@@ -82,7 +82,9 @@ class CropProfile(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        # FIX B14: onupdate=lambda убран — он не срабатывает при ручном
+        # setattr + commit без dirty-tracking ORM (SQLAlchemy не помечает
+        # объект как изменённый). Поле обновляется явно в crud.update_profile.
         nullable=False,
     )
     updated_by: Mapped[str | None] = mapped_column(
@@ -108,6 +110,7 @@ class CropProfile(Base):
             "heat_threshold": self.heat_threshold,
             "heat_coeff": self.heat_coeff,
             "description": self.description,
+            "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "updated_by": self.updated_by,
         }
@@ -129,6 +132,10 @@ class ThresholdHistory(Base):
     )
     crop_name: Mapped[str] = mapped_column(
         String(100), nullable=False, index=True,
+        # FIX B15: crop_name дублируется из crop_profiles для удобства запросов
+        # без JOIN. Синхронность гарантируется только на уровне приложения
+        # (crud.create_profile / update_profile всегда берут crop_name из profile.crop_name).
+        # На уровне БД enforce через CHECK или trigger при наличии такой возможности.
         comment="Дублируем для удобства запросов без JOIN",
     )
 
