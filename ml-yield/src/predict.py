@@ -4,7 +4,7 @@ import numpy as np
 from fetch_weather import fetch_forecast_weather
 from preprocess import aggregate_season
 
-MODEL_PATH = "../models/yield_model.pkl"
+MODEL_PATH = "/app/models/yield_model.pkl"
 
 FEATURE_COLS = [
     "temp_mean", "temp_max", "temp_min",
