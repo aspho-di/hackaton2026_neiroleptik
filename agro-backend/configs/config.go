@@ -50,8 +50,9 @@ func LoadConfig() *Config {
 			DSN:      getEnv("DATABASE_URL", ""),
 		},
 		Redis: RedisConfig{
-			Host: getEnv("REDIS_HOST", "localhost"),
-			Port: getEnv("REDIS_PORT", "6379"),
+			Host:     getEnv("REDIS_HOST", "localhost"),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 	}
 }
