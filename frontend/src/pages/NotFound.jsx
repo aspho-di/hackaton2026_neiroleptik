@@ -38,7 +38,7 @@ export default function NotFound() {
 
         {/* Колосья */}
         {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750].map((x, i) => (
-          <g key={x} transform={`translate(${x}, ${140 + (i % 3) * 12})`} style={{ animation: `sway ${2 + (i % 3) * 0.4}s ease-in-out ${i * 0.15}s infinite alternate` }}>
+          <g key={x} transform={`translate(${x}, ${140 + (i % 3) * 12})`}>
             <line x1="0" y1="40" x2="0" y2="0" stroke="#388e3c" strokeWidth="1.5" />
             <ellipse cx="0" cy="-5" rx="3" ry="8" fill="#558b2f" />
             <line x1="-6" y1="15" x2="0" y2="10" stroke="#388e3c" strokeWidth="1" />
@@ -47,8 +47,9 @@ export default function NotFound() {
         ))}
       </svg>
 
+
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1, animation: 'fadeIn 0.5s ease' }}>
+      <div style={{ position: 'relative', zIndex: 1 }}>
         {/* 404 number */}
         <div style={{
           fontFamily: 'Montserrat, sans-serif',
