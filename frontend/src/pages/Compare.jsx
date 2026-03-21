@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import StatusBadge from '../components/StatusBadge'
 import { useFields } from '../hooks/useFields'
-import { getMockForecastForField } from '../mockData'
+import { fetchForecast, fetchSensorData, fetchCurrentWeather } from '../api/client'
 import { IconWarning } from '../components/icons/Icons'
 import { CROP_LABEL } from '../constants/districts'
 import {
@@ -11,20 +11,13 @@ import {
 
 const FIELD_COLORS = ['#4caf50', '#3b82f6', '#f59e0b', '#ef4444']
 
-// Мок данных датчиков по участкам
-const FIELD_SENSORS = {
-  45: { soil_moisture: 45, air_temp: 22 },
-  12: { soil_moisture: 32, air_temp: 32 },
-  7:  { soil_moisture: 98, air_temp: 35 },
-  23: { soil_moisture: 55, air_temp: 20 },
-  31: { soil_moisture: 38, air_temp: 31 },
-}
-
 const STATUS_ORDER = { anomaly: 0, warning: 1, normal: 2 }
 
 function getEffectiveStatus(forecast) {
   if (forecast.status === 'anomaly') return 'anomaly'
-  if (forecast.confidence === 'low') return 'warning'
+  // confidence may be numeric (0–1) or string 'low'/'high'
+  const conf = forecast.confidence
+  if (conf === 'low' || (typeof conf === 'number' && conf < 0.5)) return 'warning'
   return 'normal'
 }
 
@@ -199,8 +192,9 @@ function Recommendations({ items }) {
 
 export default function Compare() {
   const { fields: allFields } = useFields()
-  const [selected, setSelected] = useState([])
-  const [compared, setCompared] = useState(null)
+  const [selected,  setSelected]  = useState([])
+  const [compared,  setCompared]  = useState(null)
+  const [comparing, setComparing] = useState(false)
 
   function toggle(fieldId) {
     setSelected(prev =>
@@ -210,15 +204,32 @@ export default function Compare() {
     )
   }
 
-  function compare() {
-    const result = selected.map(id => {
-      const field    = allFields.find(f => f.field_id === id)
-      const forecast = getMockForecastForField(id)
-      const sensors  = FIELD_SENSORS[id] || { soil_moisture: 45, air_temp: 22 }
-      const precip   = +((forecast?.precip_forecast_7days ?? []).filter(v => v != null).reduce((s, v) => s + v, 0).toFixed(1))
-      return { field, forecast, sensors, precip }
-    })
-    setCompared(result)
+  async function compare() {
+    setComparing(true)
+    try {
+      const result = await Promise.all(selected.map(async id => {
+        const field = allFields.find(f => f.field_id === id)
+        const [forecast, sensorArr, weather] = await Promise.allSettled([
+          fetchForecast(id, field?.latitude, field?.longitude),
+          fetchSensorData(id),
+          fetchCurrentWeather(field?.latitude, field?.longitude),
+        ])
+        const fc  = forecast.value  ?? { status: 'normal', confidence: 0.8 }
+        const arr = sensorArr.value ?? []
+        const wt  = weather.value   ?? null
+        const last = Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null
+        const sensors = {
+          soil_moisture: last?.soil_moisture ?? 45,
+          air_temp:      last?.temperature   ?? 22,
+        }
+        const precipArr = wt?.precip_forecast_7days ?? []
+        const precip = +(precipArr.reduce((s, v) => s + (v ?? 0), 0).toFixed(1))
+        return { field, forecast: fc, sensors, precip }
+      }))
+      setCompared(result)
+    } finally {
+      setComparing(false)
+    }
   }
 
   const radarData = compared ? buildRadarData(compared) : null
@@ -267,17 +278,17 @@ export default function Compare() {
           </div>
           <button
             onClick={compare}
-            disabled={selected.length < 2}
+            disabled={selected.length < 2 || comparing}
             style={{
               padding: '10px 28px', borderRadius: 8, border: 'none',
-              background: selected.length < 2 ? 'var(--color-text-muted)' : 'var(--color-accent)',
+              background: (selected.length < 2 || comparing) ? 'var(--color-text-muted)' : 'var(--color-accent)',
               color: '#fff', fontSize: 14, fontWeight: 600,
               fontFamily: 'Montserrat, sans-serif',
-              cursor: selected.length < 2 ? 'not-allowed' : 'pointer',
+              cursor: (selected.length < 2 || comparing) ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s',
             }}
           >
-            Сравнить {selected.length >= 2 ? `(${selected.length})` : ''}
+            {comparing ? 'Загрузка...' : `Сравнить${selected.length >= 2 ? ` (${selected.length})` : ''}`}
           </button>
         </div>
 

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { loadSavedFields } from '../components/AddFieldModal'
+import { fetchFields } from '../api/client'
 import { CROP_LABEL } from '../constants/districts'
 import Toast, { showToast } from '../components/Toast'
 import { IconDroplets } from '../components/icons/Icons'
@@ -18,13 +19,31 @@ const card = {
 }
 
 export default function IrrigationPlan() {
-  const allFields = loadSavedFields()
+  const [allFields, setAllFields] = useState(loadSavedFields)
+  const [waterLimit, setWaterLimit] = useState('')
+  const [plan, setPlan] = useState(null)
+
+  useEffect(() => {
+    fetchFields().then(data => {
+      if (!Array.isArray(data) || !data.length) return
+      const backendFields = data.map(f => ({
+        field_id:  f.id,
+        name:      f.name,
+        crop:      f.crop_type ?? 'wheat',
+        status:    'normal',
+        area:      f.area_hectares,
+        latitude:  f.latitude,
+        longitude: f.longitude,
+      }))
+      const localFields = loadSavedFields()
+      const backendIds  = new Set(backendFields.map(f => f.field_id))
+      setAllFields([...backendFields, ...localFields.filter(f => !backendIds.has(f.field_id))])
+    }).catch(() => {})
+  }, [])
+
   const sorted = [...allFields].sort((a, b) =>
     (STATUS_PRIORITY[a.status] || 3) - (STATUS_PRIORITY[b.status] || 3)
   )
-
-  const [waterLimit, setWaterLimit] = useState('')
-  const [plan, setPlan] = useState(null)
 
   function distribute() {
     const limit = Number(waterLimit)

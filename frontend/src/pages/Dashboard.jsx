@@ -1,17 +1,21 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import FieldList from '../components/FieldList'
 import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
+import { fetchFields } from '../api/client'
 import { getUser } from '../auth'
 import WheatEmoji from '../components/icons/WheatEmoji'
 import Toast, { showToast } from '../components/Toast'
 import Onboarding from '../components/Onboarding'
 import { CROPS, CROP_LABEL } from '../constants/districts'
-import { IconSearch, IconX } from '../components/icons/Icons'
+import { IconSearch, IconX, IconCheck } from '../components/icons/Icons'
 
+const GO_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+
+// Go API + оба ML-сервиса через единый прокси-эндпоинт /api/v1/ml/health
 const DATA_SOURCES = [
-    { key: 'go',      label: 'Go API',     url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/fields`, short: ':8080' },
-    { key: 'py',      label: 'ML-сервис',  url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/ml/health`, short: ':8002' },
-    { key: 'weather', label: 'Open-Meteo', url: 'https://api.open-meteo.com/v1/forecast?latitude=46.85&longitude=40.31&daily=precipitation_sum&forecast_days=1&timezone=Europe%2FMoscow', short: 'API' },
+  { key: 'go',      label: 'Go API',     url: `${GO_BASE}/api/v1/fields`,   short: ':8080' },
+  { key: 'ml',      label: 'ML-сервисы', url: `${GO_BASE}/api/v1/ml/health`, short: 'ML'   },
+  { key: 'weather', label: 'Open-Meteo', url: 'https://api.open-meteo.com/v1/forecast?latitude=46.85&longitude=40.31&daily=precipitation_sum&forecast_days=1&timezone=Europe%2FMoscow', short: 'API' },
 ]
 
 function DataSourcesWidget() {
@@ -22,10 +26,15 @@ function DataSourcesWidget() {
     setStatuses(Object.fromEntries(DATA_SOURCES.map(s => [s.key, 'checking'])))
     const results = await Promise.all(DATA_SOURCES.map(async s => {
       try {
-        const ctrl = new AbortController()
+        const ctrl  = new AbortController()
         const timer = setTimeout(() => ctrl.abort(), 3000)
-        const res = await fetch(s.url, { signal: ctrl.signal, method: 'GET' })
+        const res   = await fetch(s.url, { signal: ctrl.signal, method: 'GET' })
         clearTimeout(timer)
+        if (s.key === 'ml' && res.ok) {
+          // ml/health возвращает { status, ml_yield_service, ml_irrigation_service }
+          const data = await res.json()
+          return [s.key, data.status === 'ok' ? 'online' : 'offline']
+        }
         return [s.key, res.ok || res.status < 500 ? 'online' : 'offline']
       } catch {
         return [s.key, 'offline']
@@ -78,8 +87,12 @@ function DataSourcesWidget() {
             }} />
             <span style={{ color: 'var(--color-text-muted)' }}>
               {src.label}
-              <span style={{ color: 'var(--color-text)', fontWeight: 600, marginLeft: 3 }}>
-                {s === 'online' ? '✓' : s === 'offline' ? '✗' : '…'}
+              <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 4 }}>
+                {s === 'online'
+                  ? <IconCheck size={11} color="var(--color-normal)" />
+                  : s === 'offline'
+                  ? <IconX size={11} color="var(--color-anomaly)" />
+                  : <span style={{ color: 'var(--color-warning)', fontSize: 11, fontWeight: 600 }}>…</span>}
               </span>
             </span>
           </div>
@@ -155,6 +168,28 @@ export default function Dashboard() {
 
   const [savedFields, setSavedFields] = useState(() => loadSavedFields())
   const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+    fetchFields().then(data => {
+      if (!Array.isArray(data) || !data.length) return
+      const backendFields = data.map(f => ({
+        field_id:  f.id,
+        name:      f.name,
+        crop:      f.crop_type ?? 'wheat',
+        status:    'normal',
+        area:      f.area_hectares,
+        latitude:  f.latitude,
+        longitude: f.longitude,
+        temp:      20,
+        precip:    5,
+      }))
+      setSavedFields(prev => {
+        const backendIds = new Set(backendFields.map(f => f.field_id))
+        const localOnly  = prev.filter(f => !backendIds.has(f.field_id))
+        return [...backendFields, ...localOnly]
+      })
+    }).catch(() => {})
+  }, [])
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'))
 
   // Search & filter state

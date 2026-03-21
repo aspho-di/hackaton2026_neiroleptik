@@ -5,8 +5,8 @@ import {
   ComposedChart, Bar, Legend,
 } from 'recharts'
 import { loadSavedFields } from '../components/AddFieldModal'
-import { fetchPredictions } from '../api/client'
-import { IconDownload } from '../components/icons/Icons'
+import { fetchPredictions, fetchSensorData } from '../api/client'
+import { IconDownload, IconWarning, IconBarChart, IconArrowUp, IconInfo } from '../components/icons/Icons'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CROP_LABEL_MAP = {
@@ -131,7 +131,7 @@ function PredTooltip({ active, payload, label }) {
       {d?.confidence != null && (
         <div style={{ color: 'var(--color-text-muted)' }}>Уверенность: {Math.round(d.confidence * 100)}%</div>
       )}
-      {d?.is_anomaly && <div style={{ color: '#ef4444', fontWeight: 600 }}>⚠ Аномалия</div>}
+      {d?.is_anomaly && <div style={{ color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}><IconWarning size={11} color="#ef4444" />Аномалия</div>}
     </div>
   )
 }
@@ -153,8 +153,9 @@ function OblastTooltip({ active, payload, label }) {
 export default function History() {
   const allFields = loadSavedFields()
   const [selectedFieldId, setSelectedFieldId] = useState(() => allFields[0]?.field_id ?? null)
-  const [predictions, setPredictions] = useState([])
+  const [predictions,  setPredictions]  = useState([])
   const [predsLoading, setPredsLoading] = useState(false)
+  const [backendSensors, setBackendSensors] = useState([])
 
   const field = allFields.find(f => f.field_id === selectedFieldId) ?? null
 
@@ -162,16 +163,39 @@ export default function History() {
     if (!selectedFieldId) return
     setPredsLoading(true)
     setPredictions([])
-    fetchPredictions(selectedFieldId)
-      .then(data => setPredictions(Array.isArray(data) ? data : []))
-      .catch(() => setPredictions([]))
-      .finally(() => setPredsLoading(false))
+    setBackendSensors([])
+
+    Promise.all([
+      fetchPredictions(selectedFieldId).catch(() => null),
+      fetchSensorData(selectedFieldId).catch(() => null),
+    ]).then(([preds, sensors]) => {
+      setPredictions(Array.isArray(preds) ? preds : [])
+      // Адаптируем ответ бэка { id, field_id, soil_moisture, temperature, humidity, timestamp }
+      // к формату localStorage { ts, soil_moisture, air_temperature, humidity }
+      if (Array.isArray(sensors)) {
+        setBackendSensors(sensors.map(s => ({
+          ts:              s.timestamp,
+          soil_moisture:   s.soil_moisture,
+          air_temperature: s.temperature,
+          humidity:        s.humidity,
+          wind_speed:      null,
+          is_anomaly:      false,
+          irrigate:        false,
+          amount_mm:       null,
+          _source:         'backend',
+        })))
+      }
+    }).finally(() => setPredsLoading(false))
   }, [selectedFieldId])
 
-  const sensorHistory = useMemo(
-    () => field ? loadSensorHistory(field.field_id) : [],
-    [field]
-  )
+  // Мержим сенсоры из бэка и localStorage, дедублируем по ts
+  const sensorHistory = useMemo(() => {
+    const local = field ? loadSensorHistory(field.field_id) : []
+    const localTs = new Set(local.map(r => r.ts))
+    // Добавляем из бэка только те записи, которых нет в localStorage
+    const merged = [...local, ...backendSensors.filter(r => !localTs.has(r.ts))]
+    return merged.sort((a, b) => new Date(a.ts) - new Date(b.ts))
+  }, [field, backendSensors])
 
   // Build prediction chart data: sorted by date, null = gap
   const predChartData = useMemo(() => {
@@ -243,7 +267,7 @@ export default function History() {
   if (allFields.length === 0) {
     return (
       <div style={{ maxWidth: 600, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--color-accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 32 }}>📊</div>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--color-accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}><IconBarChart size={34} color="var(--color-accent)" /></div>
         <div style={{ fontSize: 20, fontFamily: 'Montserrat, sans-serif', fontWeight: 700, color: 'var(--color-text)', marginBottom: 10 }}>
           Нет полей для анализа
         </div>
@@ -502,11 +526,11 @@ export default function History() {
                     </td>
                     <td style={{ padding: '9px 12px' }}>{r.wind_speed ?? '—'} м/с</td>
                     <td style={{ padding: '9px 12px', color: r.is_anomaly ? 'var(--color-anomaly)' : 'var(--color-normal)', fontWeight: r.is_anomaly ? 600 : 400 }}>
-                      {r.is_anomaly ? '⚠ Да' : 'Нет'}
+                      {r.is_anomaly ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconWarning size={12} color="var(--color-anomaly)" />Да</span> : 'Нет'}
                     </td>
                     <td style={{ padding: '9px 12px' }}>
                       {r.irrigate
-                        ? <span style={{ color: '#3b82f6', fontWeight: 600 }}>↑ {r.amount_mm} мм</span>
+                        ? <span style={{ color: '#3b82f6', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}><IconArrowUp size={12} color="#3b82f6" />{r.amount_mm} мм</span>
                         : <span style={{ color: 'var(--color-text-muted)' }}>—</span>}
                     </td>
                   </tr>
@@ -528,7 +552,7 @@ export default function History() {
         borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 12,
         color: 'var(--color-text-muted)',
       }}>
-        <span style={{ fontSize: 16 }}>ℹ️</span>
+        <IconInfo size={16} color="#f59e0b" />
         Данные ниже — региональная статистика Ростовской области, <b>не конкретного участка</b>. Используйте для сравнения с вашими результатами.
       </div>
 

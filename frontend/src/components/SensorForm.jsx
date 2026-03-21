@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { validateSensorData, saveSensorData, fetchIrrigationRecommend } from '../api/client'
 import AnomalyAlert from './AnomalyAlert'
-import { IconCheck, IconX, IconWarning } from './icons/Icons'
+import { IconCheck, IconX, IconWarning, IconDroplet } from './icons/Icons'
 import { showToast } from './Toast'
 
 const inputStyle = {
@@ -127,7 +127,9 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
       }
 
       // Шаг 2: сохранить данные датчика (Go :8080)
-      await saveSensorData(fieldId, humidity, soil_moisture, air_temperature, wind_speed)
+      // Бэк принимает: { field_id, humidity, soil_moisture, temperature }
+      // wind_speed и soil_temperature не хранятся в БД — только для ML
+      await saveSensorData(fieldId, humidity, soil_moisture, air_temperature)
 
       // Шаг 3: рекомендация полива (Python :8002 /recommend/irrigation)
       const irrigationData = await fetchIrrigationRecommend(
@@ -252,7 +254,7 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
 
       {validWarnings.length > 0 && (
         <div style={{ marginTop: 12, fontSize: 13, color: 'var(--color-warning)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {validWarnings.map((w, i) => <span key={i}>⚠ {w}</span>)}
+          {validWarnings.map((w, i) => <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IconWarning size={12} color="var(--color-warning)" />{w}</span>)}
         </div>
       )}
 
@@ -283,7 +285,8 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
             const cardBg     = isAnomaly ? '#fef2f2' : result.irrigate ? '#fffbeb' : '#f0fdf4'
             const cardBorder = isAnomaly ? '#fecaca' : result.irrigate ? '#fde68a' : '#bbf7d0'
             const cardAccent = isAnomaly ? 'var(--color-anomaly)' : result.irrigate ? 'var(--color-warning)' : 'var(--color-normal)'
-            const cardLabel  = isAnomaly ? '⚠ Аномалия' : result.irrigate ? '💧 Требуется полив' : '✓ Полив не нужен'
+            const cardIcon   = isAnomaly ? <IconWarning size={14} color={cardAccent} /> : result.irrigate ? <IconDroplet size={14} color={cardAccent} /> : <IconCheck size={14} color={cardAccent} />
+            const cardText   = isAnomaly ? 'Аномалия' : result.irrigate ? 'Требуется полив' : 'Полив не нужен'
             return (
           <div style={{
             background: cardBg,
@@ -293,8 +296,9 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
             padding: '16px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '12px' }}>
+              {cardIcon}
               <div style={{ fontWeight: 700, color: cardAccent, fontFamily: 'Montserrat, sans-serif', fontSize: '14px' }}>
-                {cardLabel}
+                {cardText}
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>

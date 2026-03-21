@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import WheatEmoji from './icons/WheatEmoji'
-import { IconBarChart, IconDroplets, IconBell, IconCompare, IconCheck } from './icons/Icons'
+import { IconBarChart, IconDroplets, IconBell, IconCompare, IconCheck, IconArrowRight } from './icons/Icons'
 
 const STEPS = [
   {
@@ -198,7 +198,7 @@ export default function Onboarding({ onDone }) {
             onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
-            {step === STEPS.length - 1 ? 'Начать работу' : 'Далее →'}
+            {step === STEPS.length - 1 ? 'Начать работу' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Далее <IconArrowRight size={14} color="#fff" /></span>}
           </button>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { MOCK_ALERTS } from '../mockData'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck, IconX } from '../components/icons/Icons'
 import { getUser } from '../auth'
@@ -47,14 +46,18 @@ export default function Alerts() {
   const [filter,     setFilter]     = useState('all')
   const [readIds,    setReadIds]    = useState(getReadIds)
   const [deletedIds, setDeletedIds] = useState(getDeletedIds)
-  const [alerts,     setAlerts]     = useState(() => hasFields ? MOCK_ALERTS : [makeWelcome(user)])
+  const [alerts, setAlerts] = useState([])
 
   useEffect(() => {
     fetchAlerts()
       .then(data => {
-        if (data && Array.isArray(data) && data.length > 0) setAlerts(data)
+        if (data && Array.isArray(data) && data.length > 0) {
+          setAlerts(data)
+        } else {
+          setAlerts([makeWelcome(user)])
+        }
       })
-      .catch(() => {})
+      .catch(() => { setAlerts([makeWelcome(user)]) })
   }, [])
 
   function markRead(id) {

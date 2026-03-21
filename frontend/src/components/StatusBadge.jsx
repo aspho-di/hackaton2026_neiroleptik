@@ -6,7 +6,8 @@ const BADGE_CONFIG = {
 
 export default function StatusBadge({ status, confidence }) {
   let key = status
-  if (confidence === 'low' && status !== 'anomaly') key = 'warning'
+  const isLowConf = confidence === 'low' || (typeof confidence === 'number' && confidence < 0.7)
+  if (isLowConf && status !== 'anomaly') key = 'warning'
 
   const cfg = BADGE_CONFIG[key] ?? BADGE_CONFIG.normal
 

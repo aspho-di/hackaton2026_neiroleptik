@@ -8,7 +8,7 @@ import { getMockForecastForField } from '../mockData'
 import { fetchForecast, fetchCurrentWeather, deleteField, fetchSensorData, validateSensorData, fetchIrrigationRecommend, saveSensorData } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
-import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning } from '../components/icons/Icons'
+import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning, IconCheck, IconX, IconArrowLeft, IconChevronDown, IconZap, IconPencil } from '../components/icons/Icons'
 import FieldMap from '../components/FieldMap'
 import Toast from '../components/Toast'
 import WheatEmoji from '../components/icons/WheatEmoji'
@@ -197,7 +197,7 @@ function WhatIfSection({ baseYield }) {
         }}
       >
         <span>Сценарий: что если?</span>
-        <span style={{ fontSize: 12, color: 'var(--color-text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none' }}>▼</span>
+        <span style={{ transition: 'transform 0.2s', display: 'inline-flex', transform: open ? 'rotate(180deg)' : 'none' }}><IconChevronDown size={14} color="var(--color-text-muted)" /></span>
       </button>
 
       {open && (
@@ -271,32 +271,101 @@ const API_FIELDS = [
   { key: 'wind_speed',       label: 'Ветер',             unit: 'м/с' },
 ]
 
+const DEFAULT_CONFIG = {
+  url: '',
+  method: 'GET',
+  token: '',
+  mapping: { humidity: '', soil_moisture: '', soil_temperature: '', temperature: '', wind_speed: '' },
+}
+
+function resolvePath(obj, path) {
+  if (!path) return undefined
+  return path.split('.').reduce((cur, key) => cur?.[key], obj)
+}
+
+function loadApiConfig(fieldId) {
+  try { return JSON.parse(localStorage.getItem(`sensor_api_config_${fieldId}`)) || DEFAULT_CONFIG } catch { return DEFAULT_CONFIG }
+}
+
+function saveApiConfig(fieldId, cfg) {
+  try { localStorage.setItem(`sensor_api_config_${fieldId}`, JSON.stringify(cfg)) } catch {}
+}
+
+const cfgInputStyle = {
+  width: '100%', padding: '7px 10px', border: '1px solid var(--color-border)',
+  borderRadius: 6, fontSize: 12, background: 'var(--color-bg)',
+  color: 'var(--color-text)', outline: 'none', boxSizing: 'border-box',
+}
+
 function ApiSensorPanel({ fieldId, crop, onResult }) {
-  const [data,    setData]    = useState(null)   // latest sensor record
-  const [loading, setLoading] = useState(false)
+  const [data,        setData]        = useState(null)
+  const [loading,     setLoading]     = useState(false)
   const [calcLoading, setCalcLoading] = useState(false)
-  const [error,   setError]   = useState(null)
-  const [result,  setResult]  = useState(null)
-  const [fetchedAt, setFetchedAt] = useState(null)
+  const [error,       setError]       = useState(null)
+  const [result,      setResult]      = useState(null)
+  const [fetchedAt,   setFetchedAt]   = useState(null)
+  const [showCfg,     setShowCfg]     = useState(false)
+  const [cfg,         setCfg]         = useState(() => loadApiConfig(fieldId))
+  const [cfgDraft,    setCfgDraft]    = useState(() => loadApiConfig(fieldId))
+
+  const hasCustomUrl = Boolean(cfg.url?.trim())
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetchSensorData(fieldId)
-      const record = Array.isArray(res) ? res[res.length - 1] : res
+      let record
+      if (hasCustomUrl) {
+        const headers = { 'Content-Type': 'application/json' }
+        if (cfg.token?.trim()) headers['Authorization'] = `Bearer ${cfg.token.trim()}`
+        const res  = await fetch(cfg.url.trim(), { method: cfg.method || 'GET', headers })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        const raw  = Array.isArray(json) ? json[json.length - 1] : json
+        // Apply field mapping
+        const mapped = {}
+        for (const key of Object.keys(DEFAULT_CONFIG.mapping)) {
+          const path = cfg.mapping?.[key]
+          mapped[key] = path?.trim() ? resolvePath(raw, path.trim()) : raw[key]
+        }
+        record = mapped
+      } else {
+        const res = await fetchSensorData(fieldId)
+        record = Array.isArray(res) ? res[res.length - 1] : res
+      }
       if (!record) throw new Error('empty')
       setData(record)
       setFetchedAt(new Date())
     } catch {
-      setError('Нет данных с датчика. Проверьте подключение к API (:8080).')
+      setError(hasCustomUrl
+        ? 'Не удалось получить данные с вашего API. Проверьте URL и настройки.'
+        : 'Нет данных с датчика. Проверьте подключение к API (:8080).')
       setData(null)
     } finally {
       setLoading(false)
     }
-  }, [fieldId])
+  }, [fieldId, hasCustomUrl, cfg])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  function openCfg() {
+    setCfgDraft({ ...cfg, mapping: { ...cfg.mapping } })
+    setShowCfg(true)
+  }
+
+  function saveCfg() {
+    setCfg(cfgDraft)
+    saveApiConfig(fieldId, cfgDraft)
+    setShowCfg(false)
+  }
+
+  function resetCfg() {
+    const blank = { ...DEFAULT_CONFIG, mapping: { ...DEFAULT_CONFIG.mapping } }
+    setCfg(blank)
+    setCfgDraft(blank)
+    saveApiConfig(fieldId, blank)
+    setShowCfg(false)
+  }
 
   async function handleCalc() {
     if (!data) return
@@ -335,6 +404,11 @@ function ApiSensorPanel({ fieldId, crop, onResult }) {
           <span style={{ fontSize: 15, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)' }}>
             Данные с датчика
           </span>
+          {hasCustomUrl && (
+            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, fontWeight: 600, background: '#eff6ff', color: '#3b82f6' }}>
+              свой API
+            </span>
+          )}
           <span style={{
             fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600,
             background: data ? '#f0fdf4' : error ? '#fef2f2' : '#fffbeb',
@@ -343,12 +417,30 @@ function ApiSensorPanel({ fieldId, crop, onResult }) {
             {loading ? 'Загрузка...' : data ? 'Получены' : error ? 'Нет связи' : '—'}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           {fetchedAt && !loading && (
             <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
               обновлено в {fetchedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}
+          {/* Settings button */}
+          <button
+            onClick={() => showCfg ? setShowCfg(false) : openCfg()}
+            title="Настроить источник данных"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+              border: `1px solid ${showCfg ? 'var(--color-accent)' : 'var(--color-border)'}`,
+              background: showCfg ? 'var(--color-accent-light)' : 'var(--color-surface)',
+              color: showCfg ? 'var(--color-accent)' : 'var(--color-text-muted)',
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            API
+          </button>
           <button
             onClick={fetchData} disabled={loading}
             style={{
@@ -370,6 +462,105 @@ function ApiSensorPanel({ fieldId, crop, onResult }) {
           </button>
         </div>
       </div>
+
+      {/* Config panel */}
+      {showCfg && (
+        <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', marginBottom: 14, fontFamily: 'Montserrat, sans-serif' }}>
+            Настройка источника данных датчика
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10, marginBottom: 12 }}>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>URL датчика</label>
+              <input
+                style={cfgInputStyle}
+                placeholder="https://my-sensor.example.com/api/data"
+                value={cfgDraft.url}
+                onChange={e => setCfgDraft(p => ({ ...p, url: e.target.value }))}
+                onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
+                onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Метод</label>
+              <select
+                style={{ ...cfgInputStyle, cursor: 'pointer' }}
+                value={cfgDraft.method}
+                onChange={e => setCfgDraft(p => ({ ...p, method: e.target.value }))}
+              >
+                <option>GET</option>
+                <option>POST</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Bearer-токен (опционально)</label>
+            <input
+              style={cfgInputStyle}
+              type="password"
+              placeholder="eyJhbGciOi..."
+              value={cfgDraft.token}
+              onChange={e => setCfgDraft(p => ({ ...p, token: e.target.value }))}
+              onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
+              onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
+            />
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Маппинг полей (JSON-путь, напр. data.sensors.moisture)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8, marginBottom: 14 }}>
+            {API_FIELDS.map(f => (
+              <div key={f.key}>
+                <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500, display: 'block', marginBottom: 3 }}>
+                  {f.label}
+                </label>
+                <input
+                  style={cfgInputStyle}
+                  placeholder={f.key}
+                  value={cfgDraft.mapping?.[f.key] ?? ''}
+                  onChange={e => setCfgDraft(p => ({ ...p, mapping: { ...p.mapping, [f.key]: e.target.value } }))}
+                  onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={saveCfg}
+              style={{
+                padding: '7px 18px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                background: 'var(--color-accent)', color: '#fff', border: 'none',
+                cursor: 'pointer', fontFamily: 'Montserrat, sans-serif',
+              }}
+            >
+              Сохранить
+            </button>
+            <button
+              onClick={() => setShowCfg(false)}
+              style={{
+                padding: '7px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                background: 'var(--color-surface)', color: 'var(--color-text-muted)',
+                border: '1px solid var(--color-border)', cursor: 'pointer',
+              }}
+            >
+              Отмена
+            </button>
+            {hasCustomUrl && (
+              <button
+                onClick={resetCfg}
+                style={{
+                  padding: '7px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                  background: '#fef2f2', color: 'var(--color-anomaly)',
+                  border: '1px solid #fecaca', cursor: 'pointer', marginLeft: 'auto',
+                }}
+              >
+                Сбросить к умолчанию
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Values grid */}
       {data ? (
@@ -422,7 +613,7 @@ function ApiSensorPanel({ fieldId, crop, onResult }) {
             Рекомендация по поливу
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-            <MiniStat label="Нужен полив" value={result.irrigate ? '✓ Да' : '✗ Нет'} color={result.irrigate ? 'var(--color-normal)' : 'var(--color-anomaly)'} />
+            <MiniStat label="Нужен полив" value={result.irrigate ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconCheck size={13} color="var(--color-normal)" />Да</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconX size={13} color="var(--color-anomaly)" />Нет</span>} color={result.irrigate ? 'var(--color-normal)' : 'var(--color-anomaly)'} />
             {result.irrigate && <MiniStat label="Объём" value={`${result.amount_mm} мм`} />}
             {result.when && <MiniStat label="Дата" value={result.when} />}
             {result.rain_next_days_mm != null && <MiniStat label="Осадки 2–3 дня" value={`${result.rain_next_days_mm} мм`} />}
@@ -539,7 +730,7 @@ export default function FieldDetail() {
 
         {/* Back */}
         <button onClick={() => navigate('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
-          ← Все поля
+          <IconArrowLeft size={14} color="var(--color-accent)" /> Все поля
         </button>
 
         {/* Title row */}
@@ -659,8 +850,8 @@ export default function FieldDetail() {
                     border: '1px solid var(--color-border)', marginBottom: 12,
                   }}>
                     {[
-                      { key: 'manual', label: '✏ Вручную' },
-                      { key: 'api',    label: '⚡ С датчика (API)' },
+                      { key: 'manual', label: <><IconPencil size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Вручную</> },
+                      { key: 'api',    label: <><IconZap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> С датчика (API)</> },
                     ].map(opt => (
                       <button
                         key={opt.key}
@@ -709,7 +900,7 @@ export default function FieldDetail() {
                     <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 2 }}>Осадки на 7 дней</div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{CROP_LABEL[field.crop] ?? field.crop}</div>
                   </div>
-                  <PrecipChart data={weatherData?.precip_forecast_7days ?? forecast.precip_forecast_7days} height={240} />
+                  <PrecipChart data={weatherData?.precip_forecast_7days} height={240} />
                   {weatherData && (
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6, textAlign: 'right' }}>
                       Данные: {weatherData.source} · обновлено в {new Date(weatherData.updated_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
@@ -718,7 +909,7 @@ export default function FieldDetail() {
                 </div>
 
                 {/* Водный баланс — после расчёта */}
-                {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days ?? forecast?.precip_forecast_7days} />}
+                {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days} />}
 
                 {/* Мини-карта */}
                 <FieldMap latitude={field?.latitude} longitude={field?.longitude} fieldName={field?.name} />

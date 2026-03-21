@@ -1,5 +1,8 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
-const PY_URL   = import.meta.env.VITE_PY_URL  || 'http://localhost:8002'
+
+function getUserId() {
+  try { return JSON.parse(localStorage.getItem('agronomist'))?.id ?? 1 } catch { return 1 }
+}
 
 // ── Поля ──────────────────────────────────────────────────────────────────────
 export async function fetchFields() {
@@ -25,6 +28,19 @@ export async function createField(data) {
   }
 }
 
+export async function updateField(id, data) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/v1/fields/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return res.ok ? await res.json() : null
+  } catch {
+    return null
+  }
+}
+
 export async function deleteField(id) {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/fields/${id}`, { method: 'DELETE' })
@@ -40,7 +56,7 @@ export async function fetchForecast(field_id, latitude, longitude) {
     const res = await fetch(`${BASE_URL}/api/v1/predict`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field_id, latitude, longitude, user_id: 1 }),
+      body: JSON.stringify({ field_id, latitude, longitude, user_id: getUserId() }),
     })
     if (!res.ok) throw new Error()
     const data = await res.json()
@@ -54,6 +70,7 @@ export async function fetchForecast(field_id, latitude, longitude) {
       irrigation_recommendation: data.prediction?.irrigation_recommendation ?? null,
       warning:                   data.warning ?? null,
       status:                    isAnomaly ? 'anomaly' : confidence < 0.7 ? 'warning' : 'normal',
+      precip_forecast_7days:     data.prediction?.precip_forecast_7days ?? null,
     }
   } catch {
     return null
@@ -61,12 +78,14 @@ export async function fetchForecast(field_id, latitude, longitude) {
 }
 
 // ── Датчики ───────────────────────────────────────────────────────────────────
-export async function saveSensorData(field_id, humidity, soil_moisture, temperature, wind_speed) {
+// Backend model: { field_id, soil_moisture, temperature, humidity }
+// wind_speed и soil_temperature не хранятся на бэке — используются только ML-сервисом
+export async function saveSensorData(field_id, humidity, soil_moisture, temperature) {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/sensors/data`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field_id, humidity, soil_moisture, temperature, wind_speed }),
+      body: JSON.stringify({ field_id, humidity, soil_moisture, temperature }),
     })
     return res.ok ? await res.json() : null
   } catch {
@@ -84,10 +103,10 @@ export async function fetchSensorData(field_id) {
   }
 }
 
-// ── Рекомендация полива (Python :8002) ────────────────────────────────────────
+// ── Рекомендация полива — через Go-прокси → Python :8002 ─────────────────────
 export async function fetchIrrigationRecommend(field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days = [], wind_speed) {
   try {
-    const res = await fetch(`${PY_URL}/recommend/irrigation`, {
+    const res = await fetch(`${BASE_URL}/api/v1/recommend/irrigation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days, wind_speed }),
@@ -104,7 +123,6 @@ const SEV_MAP = { low: 'info', medium: 'warning', critical: 'critical' }
 
 export async function fetchAlerts() {
   try {
-    // Сначала пробуем frontend-friendly эндпоинт с type/description/action/district
     const res = await fetch(`${BASE_URL}/api/alerts`)
     if (!res.ok) throw new Error()
     const data = await res.json()
@@ -122,7 +140,6 @@ export async function fetchAlerts() {
     }))
   } catch {
     try {
-      // Fallback на внутренний эндпоинт
       const res2 = await fetch(`${BASE_URL}/api/v1/alerts`)
       if (!res2.ok) throw new Error()
       const data2 = await res2.json()
@@ -153,6 +170,8 @@ export async function markAlertRead(id) {
   }
 }
 
+// ── История прогнозов ─────────────────────────────────────────────────────────
+// Ответ бэка: [{ id, field_id, yield_prediction, irrigation_recommendation, confidence, is_anomaly, created_at }]
 export async function fetchPredictions(field_id) {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/predictions/${field_id}`)
@@ -187,15 +206,39 @@ export async function fetchDistricts() {
   }
 }
 
-// ── Валидация данных датчика (Python :8002) ────────────────────────────────────
+// ── Валидация данных датчика — через Go-прокси → Python :8002 ─────────────────
 export async function validateSensorData(data) {
   try {
-    const res = await fetch(`${PY_URL}/validate`, {
+    const res = await fetch(`${BASE_URL}/api/v1/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
     return res.ok ? await res.json() : null
+  } catch {
+    return null
+  }
+}
+
+// ── Профили культур — через Go-прокси → Python :8002 ─────────────────────────
+// Ответ: [{ crop_name, display_name, moisture_threshold_high, moisture_threshold_low, ... }]
+export async function fetchCropProfiles() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/v1/config/profiles`)
+    if (!res.ok) throw new Error()
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+// ── Статус ML-сервисов — через Go-прокси ─────────────────────────────────────
+// Ответ: { status, ml_yield_service, ml_irrigation_service }
+export async function fetchMLHealth() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/v1/ml/health`)
+    if (!res.ok) throw new Error()
+    return await res.json()
   } catch {
     return null
   }

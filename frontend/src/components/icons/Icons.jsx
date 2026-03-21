@@ -194,3 +194,51 @@ export const IconSearch = ({ size = 16, color = 'currentColor' }) => (
     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 )
+
+export const IconArrowLeft = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <line x1="19" y1="12" x2="5" y2="12"/>
+    <polyline points="12 19 5 12 12 5"/>
+  </svg>
+)
+
+export const IconArrowRight = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+    <polyline points="12 5 19 12 12 19"/>
+  </svg>
+)
+
+export const IconArrowUp = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <line x1="12" y1="19" x2="12" y2="5"/>
+    <polyline points="5 12 12 5 19 12"/>
+  </svg>
+)
+
+export const IconChevronDown = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)} strokeWidth="2.5">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+)
+
+export const IconZap = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+)
+
+export const IconPencil = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+)
+
+export const IconInfo = ({ size = 16, color = 'currentColor' }) => (
+  <svg {...props(size, color)}>
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="16" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+)

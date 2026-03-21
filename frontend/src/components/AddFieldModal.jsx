@@ -3,6 +3,7 @@ import { CROPS } from '../constants/districts'
 import { fetchDistricts, createField } from '../api/client'
 import WheatEmoji from './icons/WheatEmoji'
 import { IconX } from './icons/Icons'
+import { getUser } from '../auth'
 
 const DISTRICT_COORDS = {
   'Азовский':              { lat: 47.11, lon: 39.42 },
@@ -185,7 +186,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
       area_hectares:  newField.area ?? 100,
       latitude:       coords.lat,
       longitude:      coords.lon,
-      user_id:        1,
+      user_id:        getUser()?.id ?? 1,
     }
     let result = null
     try { result = await createField(payload) } catch {}

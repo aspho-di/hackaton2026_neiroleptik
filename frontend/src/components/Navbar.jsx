@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { getUser } from '../auth'
 import WheatEmoji from './icons/WheatEmoji'
 import { IconBarChart, IconDroplets, IconBell, IconCompare, IconSun, IconMoon, IconCalendar } from './icons/Icons'
-import { MOCK_ALERTS } from '../mockData'
+import { fetchAlerts } from '../api/client'
 
 function Avatar({ name, size = 36 }) {
   const [avatarUrl, setAvatarUrl] = useState(() => getUser()?.avatar || null)
@@ -91,8 +91,15 @@ export default function Navbar() {
   const user     = getUser()
   const name     = user?.name || ''
 
-  const readIds     = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
-  const unreadCount = MOCK_ALERTS.filter(a => !readIds.includes(a.id)).length
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    fetchAlerts().then(alerts => {
+      if (!Array.isArray(alerts)) return
+      const readIds = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
+      setUnreadCount(alerts.filter(a => !readIds.includes(a.id) && !a.is_read).length)
+    }).catch(() => {})
+  }, [])
 
   const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
 
