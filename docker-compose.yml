@@ -9,7 +9,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-agro}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./agro-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-agro}"]
       interval: 5s
@@ -32,22 +32,56 @@ services:
       - agro-network
     restart: unless-stopped
 
+  ml-yield:
+    build:
+      context: ./ml-yield
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    networks:
+      - agro-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  ml-irrigation:
+    build:
+      context: ./ml-irrigation
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-agro}
+      - FORECAST_SERVICE_URL=http://ml-yield:8001/predict/forecast
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - agro-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   backend:
     build:
-      context: .
+      context: ./agro-backend
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
     env_file:
-      - ../.env
+      - .env
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-agro}?sslmode=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - TELEGRAM_BOT_TOKEN=8743908724:AAHU4U_eeOxNdv6Yv6TLlhp_VPiQxZ4ElGk
-      - TELEGRAM_CHAT_ID=961046761
-      - WEATHER_PROVIDER=openweather
-      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - ML_SERVICE_1_URL=http://ml-yield:8001
+      - ML_SERVICE_2_URL=http://ml-irrigation:8002
     depends_on:
       db:
         condition: service_healthy
