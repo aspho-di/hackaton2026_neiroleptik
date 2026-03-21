@@ -18,34 +18,7 @@ export default function NotFound() {
       position: 'relative',
     }}>
 
-      {/* SVG поле на фоне */}
-      <svg
-        viewBox="0 0 800 200"
-        style={{
-          position: 'absolute',
-          bottom: 0, left: 0, right: 0,
-          width: '100%',
-          height: 200,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-        preserveAspectRatio="xMidYMax slice"
-      >
-        {/* Холм 1 */}
-        <path d="M0 180 Q200 100 400 140 Q600 180 800 120 L800 200 L0 200Z" fill="#c8e6c9" />
-        {/* Холм 2 */}
-        <path d="M0 200 Q150 150 350 165 Q550 180 800 150 L800 200 L0 200Z" fill="#a5d6a7" />
 
-        {/* Колосья */}
-        {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750].map((x, i) => (
-          <g key={x} transform={`translate(${x}, ${140 + (i % 3) * 12})`}>
-            <line x1="0" y1="40" x2="0" y2="0" stroke="#388e3c" strokeWidth="1.5" />
-            <ellipse cx="0" cy="-5" rx="3" ry="8" fill="#558b2f" />
-            <line x1="-6" y1="15" x2="0" y2="10" stroke="#388e3c" strokeWidth="1" />
-            <line x1="6" y1="20" x2="0" y2="15" stroke="#388e3c" strokeWidth="1" />
-          </g>
-        ))}
-      </svg>
 
 
       {/* Content */}
