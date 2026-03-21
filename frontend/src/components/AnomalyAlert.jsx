@@ -1,6 +1,6 @@
 import { IconWarning } from './icons/Icons'
 
-export default function AnomalyAlert({ message }) {
+export default function AnomalyAlert({ message, anomalies }) {
   return (
     <div style={{
       background: '#fef2f2',
@@ -13,14 +13,20 @@ export default function AnomalyAlert({ message }) {
       gap: '10px',
       marginBottom: '16px',
     }}>
-      <IconWarning size={18} color="#b91c1c" />
+      <IconWarning size={18} color="#b91c1c" style={{ flexShrink: 0, marginTop: 1 }} />
       <div>
-        <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, color: '#b91c1c', fontSize: '14px', marginBottom: '3px' }}>
+        <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, color: '#b91c1c', fontSize: '14px', marginBottom: '4px' }}>
           Аномалия обнаружена
         </div>
-        <div style={{ color: '#991b1b', fontSize: '13px', lineHeight: 1.5 }}>
-          {message || 'Обнаружено отклонение от нормы. Проверьте состояние поля.'}
-        </div>
+        {anomalies?.length > 0 ? (
+          <ul style={{ margin: 0, paddingLeft: '16px', color: '#991b1b', fontSize: '13px', lineHeight: 1.7 }}>
+            {anomalies.map((a, i) => <li key={i}>{a}</li>)}
+          </ul>
+        ) : (
+          <div style={{ color: '#991b1b', fontSize: '13px', lineHeight: 1.5 }}>
+            {message || 'Обнаружено отклонение от нормы. Проверьте состояние поля.'}
+          </div>
+        )}
       </div>
     </div>
   )

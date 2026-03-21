@@ -53,74 +53,74 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+    <>
       <Navbar />
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 48px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 0' }}>
 
-        {/* Greeting */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '22px', color: 'var(--color-text)', marginBottom: '4px' }}>
-            Добрый день, {firstName}!
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            Ростовская область — прогнозы урожайности и рекомендации по поливу
-          </p>
-        </div>
-
-        {/* Stat pills */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
-          {STAT_CARDS.map(card => (
-            <StatPill
-              key={card.key}
-              dot={card.dot}
-              label={card.label}
-              count={allFields.filter(card.filter).length}
-            />
-          ))}
-        </div>
-
-        {/* Section header + кнопка добавить */}
-        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Мои поля</h2>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              {allFields.length} участков
-            </span>
+          {/* Greeting */}
+          <div style={{ marginBottom: '24px' }}>
+            <h1 style={{ fontSize: '22px', color: 'var(--color-text)', marginBottom: '4px' }}>
+              Добрый день, {firstName}!
+            </h1>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+              Ростовская область — прогнозы урожайности и рекомендации по поливу
+            </p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: '#fff',
-              border: '1px solid var(--color-accent)',
-              borderRadius: '10px',
-              padding: '10px 24px',
-              fontSize: '15px',
-              fontWeight: 600,
-              color: 'var(--color-accent)',
-              cursor: 'pointer',
-              fontFamily: 'Montserrat, sans-serif',
-              transition: 'background 0.15s, color 0.15s',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--color-accent)'
-              e.currentTarget.style.color = '#fff'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = '#fff'
-              e.currentTarget.style.color = 'var(--color-accent)'
-            }}
-          >
-            + Добавить участок
-          </button>
-        </div>
 
-        <FieldList fields={allFields} />
-      </div>
+          {/* Stat pills */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
+            {STAT_CARDS.map(card => (
+              <StatPill
+                key={card.key}
+                dot={card.dot}
+                label={card.label}
+                count={allFields.filter(card.filter).length}
+              />
+            ))}
+          </div>
+
+          {/* Section header + кнопка добавить */}
+          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Мои поля</h2>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                {allFields.length} участков
+              </span>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#fff',
+                border: '1px solid var(--color-accent)',
+                borderRadius: '10px',
+                padding: '10px 24px',
+                fontSize: '15px',
+                fontWeight: 600,
+                color: 'var(--color-accent)',
+                cursor: 'pointer',
+                fontFamily: 'Montserrat, sans-serif',
+                transition: 'background 0.15s, color 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--color-accent)'
+                e.currentTarget.style.color = '#fff'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#fff'
+                e.currentTarget.style.color = 'var(--color-accent)'
+              }}
+            >
+              + Добавить участок
+            </button>
+          </div>
+
+          <FieldList fields={allFields} />
+        </div>
 
       {showModal && (
         <AddFieldModal
@@ -129,6 +129,6 @@ export default function Dashboard() {
           onAdd={handleAdd}
         />
       )}
-    </div>
+    </>
   )
 }
