@@ -16,7 +16,11 @@ api.py — FastAPI-сервис рекомендаций по поливу с Po
 """
 
 from contextlib import asynccontextmanager
+<<<<<<< HEAD
 from datetime import date, datetime, timezone
+=======
+from datetime import date
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
 from typing import Any
 import os
 import httpx
@@ -72,6 +76,7 @@ class PrecipEntry(BaseModel):
 
 class SensorPayload(BaseModel):
     field_id: int = Field(..., examples=[45])
+<<<<<<< HEAD
     crop_type: str = Field(
         ..., examples=["wheat"],
         description="Культура на поле — определяет пороги полива из БД",
@@ -88,6 +93,15 @@ class SensorPayload(BaseModel):
         examples=["2026-03-21T14:35:00Z"],
         description="Время замера с датчика (ISO 8601 UTC)",
     )
+=======
+    crop: str = Field(
+        ..., examples=["wheat"],
+        description="Культура на поле — определяет пороги полива из БД",
+    )
+    soil_moisture_percent: float = Field(..., examples=[45.0])
+    soil_temperature: float = Field(..., examples=[18.0])
+    air_temperature: float = Field(..., examples=[25.0])
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
     precip_forecast_7days: list[PrecipEntry] = Field(
         default_factory=list,
         description="Если пустой — запрашивается с localhost:8001",
@@ -156,6 +170,7 @@ async def _get_forecast() -> list[dict[str, Any]]:
 
 # ── Эндпоинты: сервис ────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 @app.get("/health", summary="Проверка работоспособности сервиса")
 async def health(db: Session = Depends(get_db)) -> dict:
     """Проверяет статус сервиса, подключения к БД и сервису прогноза погоды."""
@@ -289,6 +304,11 @@ async def metrics(db: Session = Depends(get_db)) -> dict:
             "coverage": "100%",
         },
     }
+=======
+@app.get("/health")
+async def health() -> dict:
+    return {"status": "ok", "service": "irrigation-recommendation", "port": 8002}
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
 
 
 @app.post("/validate")
@@ -309,16 +329,27 @@ async def validate(
 
     # Проверяем культуру: если профиля нет — предупреждаем сразу,
     # не дожидаясь вызова /recommend.
+<<<<<<< HEAD
     profile = crud.get_profile(db, payload.crop_type)
+=======
+    profile = crud.get_profile(db, payload.crop)
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
     if profile is None:
         return {
             "status": "anomaly",
             "confidence": "low",
             "anomalies": [
+<<<<<<< HEAD
                 f"crop_type: профиль культуры «{payload.crop_type}» не найден в БД"
             ],
             "message": (
                 f"Датчики в норме, но культура «{payload.crop_type}» неизвестна. "
+=======
+                f"crop: профиль культуры «{payload.crop}» не найден в БД"
+            ],
+            "message": (
+                f"Датчики в норме, но культура «{payload.crop}» неизвестна. "
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
                 "Создайте профиль через POST /config/profiles."
             ),
         }
@@ -341,12 +372,20 @@ async def recommend(
         return validation
 
     # 2. Профиль культуры
+<<<<<<< HEAD
     profile = crud.get_profile(db, payload.crop_type)
+=======
+    profile = crud.get_profile(db, payload.crop)
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
     if profile is None:
         raise HTTPException(
             status_code=404,
             detail=(
+<<<<<<< HEAD
                 f"Профиль культуры «{payload.crop_type}» не найден. "
+=======
+                f"Профиль культуры «{payload.crop}» не найден. "
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
                 "Создайте через POST /config/profiles или получите список доступных культур "
                 "через GET /config/profiles."
             ),
@@ -360,7 +399,11 @@ async def recommend(
 
     # 4. Рекомендация
     result = recommend_irrigation(
+<<<<<<< HEAD
         soil_moisture=payload.soil_moisture,
+=======
+        soil_moisture_percent=payload.soil_moisture_percent,
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
         air_temperature=payload.air_temperature,
         precip_forecast_7days=forecast,
         profile=profile.to_dict(),
@@ -369,6 +412,7 @@ async def recommend(
 
     return {
         "field_id": payload.field_id,
+<<<<<<< HEAD
         "is_anomaly": False,
         "validation": validation,
         "profile_used": profile.to_dict(),
@@ -379,6 +423,11 @@ async def recommend(
         "rain_next_days_mm": result["rain_next_days_mm"],
         "crop_type": result["crop"],
         "timestamp": payload.timestamp.isoformat(),
+=======
+        "validation": validation,
+        "profile_used": profile.to_dict(),
+        **result,
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
     }
 
 
@@ -476,4 +525,8 @@ def get_history_by_crop(
 
 if __name__ == "__main__":
     import uvicorn
+<<<<<<< HEAD
     uvicorn.run("api:app", host="0.0.0.0", port=8002, reload=True)
+=======
+    uvicorn.run("api:app", host="0.0.0.0", port=8002, reload=True)
+>>>>>>> 2c686ed0b38e980d39ef5c48c8be3930c2f04c33
