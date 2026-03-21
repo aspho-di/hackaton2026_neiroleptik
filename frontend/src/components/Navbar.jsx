@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getUser } from '../auth'
 import WheatEmoji from './icons/WheatEmoji'
-import { IconBarChart, IconDroplets, IconBell, IconCompare, IconSun, IconMoon } from './icons/Icons'
+import { IconBarChart, IconDroplets, IconBell, IconCompare, IconSun, IconMoon, IconCalendar } from './icons/Icons'
 import { MOCK_ALERTS } from '../mockData'
 
 function Avatar({ name, size = 36 }) {
@@ -141,6 +141,7 @@ export default function Navbar() {
           <NavIconBtn to="/history"    icon={<IconBarChart  size={19} color="rgba(255,255,255,0.85)" />} label="История урожайности" />
           <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
           <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />
+          <NavIconBtn to="/calendar"   icon={<IconCalendar  size={19} color="rgba(255,255,255,0.85)" />} label="Сезонный календарь" />
           <NavIconBtn to="/alerts"     icon={<IconBell      size={19} color="rgba(255,255,255,0.85)" />} label="Уведомления" badge={unreadCount} />
           <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 4px 0 8px' }} />
           <button

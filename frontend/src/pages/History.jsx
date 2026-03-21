@@ -6,6 +6,20 @@ import {
 import { HISTORY_DATA } from '../mockData'
 import { fetchPredictions } from '../api/client'
 import { useFields } from '../hooks/useFields'
+import { IconDownload } from '../components/icons/Icons'
+
+function exportCSV() {
+  const headers = ['Год', 'Урожайность (ц/га)', 'Осадки (мм)', 'Жарких дней', 'Ср. температура (°C)', 'Водный баланс (мм)']
+  const rows = HISTORY_DATA.map(d => [d.year, d.yield_ctha, d.precip_mm, d.hot_days, d.avg_temp, d.water_balance])
+  const csv = [headers, ...rows].map(r => r.join(';')).join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'history_2016_2025.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 const card = {
   background: 'var(--color-surface)',
@@ -76,12 +90,32 @@ export default function History() {
     <>
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 className="page-title">
-          Исторический анализ
-        </h1>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 28 }}>
-          Урожайность и погодные условия 2016–2025 · Ростовская область
-        </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 className="page-title">Исторический анализ</h1>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              Урожайность и погодные условия 2016–2025 · Ростовская область
+            </p>
+          </div>
+          <button
+            onClick={exportCSV}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-accent)',
+              borderRadius: 8, padding: '9px 18px',
+              fontSize: 13, fontWeight: 600,
+              color: 'var(--color-accent)',
+              cursor: 'pointer', fontFamily: 'Montserrat, sans-serif',
+              transition: 'all 0.15s', flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-accent)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-surface)'; e.currentTarget.style.color = 'var(--color-accent)' }}
+          >
+            <IconDownload size={15} color="currentColor" />
+            Скачать CSV
+          </button>
+        </div>
 
         {/* Блок 1 — Урожайность */}
         <div style={card}>
