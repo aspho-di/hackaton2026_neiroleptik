@@ -104,7 +104,9 @@ export default function Dashboard() {
           }}>
             {/* Search input */}
             <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 320 }}>
-              <IconSearch size={15} color="var(--color-text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+                <IconSearch size={15} color="var(--color-text-muted)" />
+              </span>
               <input
                 type="text"
                 placeholder="Поиск по названию..."
