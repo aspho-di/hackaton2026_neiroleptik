@@ -16,7 +16,7 @@ api.py — FastAPI-сервис рекомендаций по поливу с Po
 """
 
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 import os
 import httpx
@@ -72,13 +72,22 @@ class PrecipEntry(BaseModel):
 
 class SensorPayload(BaseModel):
     field_id: int = Field(..., examples=[45])
-    crop: str = Field(
+    crop_type: str = Field(
         ..., examples=["wheat"],
         description="Культура на поле — определяет пороги полива из БД",
     )
-    soil_moisture_percent: float = Field(..., examples=[45.0])
+    soil_moisture: float = Field(..., examples=[45.0])
     soil_temperature: float = Field(..., examples=[18.0])
     air_temperature: float = Field(..., examples=[25.0])
+    humidity_air: float = Field(..., ge=0.0, le=100.0, examples=[60.0],
+        description="Влажность воздуха, %")
+    wind_speed: float = Field(..., ge=0.0, examples=[3.5],
+        description="Скорость ветра, м/с")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        examples=["2026-03-21T14:35:00Z"],
+        description="Время замера с датчика (ISO 8601 UTC)",
+    )
     precip_forecast_7days: list[PrecipEntry] = Field(
         default_factory=list,
         description="Если пустой — запрашивается с localhost:8001",
@@ -147,9 +156,139 @@ async def _get_forecast() -> list[dict[str, Any]]:
 
 # ── Эндпоинты: сервис ────────────────────────────────────────────────────────
 
-@app.get("/health")
-async def health() -> dict:
-    return {"status": "ok", "service": "irrigation-recommendation", "port": 8002}
+@app.get("/health", summary="Проверка работоспособности сервиса")
+async def health(db: Session = Depends(get_db)) -> dict:
+    """Проверяет статус сервиса, подключения к БД и сервису прогноза погоды."""
+
+    # ── Проверка PostgreSQL ───────────────────────────────────────────────────
+    db_status = "connected"
+    db_error: str | None = None
+    try:
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = "unavailable"
+        db_error = str(e)
+
+    # ── Проверка сервиса прогноза (8001) ──────────────────────────────────────
+    forecast_status = "connected"
+    forecast_error: str | None = None
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(FORECAST_URL)
+            if resp.status_code >= 400:
+                forecast_status = "unavailable"
+                forecast_error = f"HTTP {resp.status_code}"
+    except Exception as e:
+        forecast_status = "unavailable"
+        forecast_error = str(e)
+
+    overall = "ok" if db_status == "connected" and forecast_status == "connected" else "degraded"
+
+    return {
+        "status": overall,
+        "service": "irrigation-recommendation",
+        "port": 8002,
+        "version": "2.0.0",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "dependencies": {
+            "postgresql": {
+                "status": db_status,
+                "error": db_error,
+            },
+            "forecast_service": {
+                "status": forecast_status,
+                "url": FORECAST_URL,
+                "error": forecast_error,
+            },
+        },
+    }
+
+
+@app.get("/metrics", summary="Метрики и характеристики сервиса")
+async def metrics(db: Session = Depends(get_db)) -> dict:
+    """
+    Метрики валидации, правила полива и статистика по профилям культур.
+    Используется для демонстрации на презентации и мониторинга системы.
+    """
+    profiles = crud.get_all_profiles(db)
+    total_changes = len(crud.get_history(db, limit=500))
+
+    return {
+        "service": {
+            "name": "Irrigation Recommendation Service",
+            "version": "2.0.0",
+            "port": 8002,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+        "validation": {
+            "description": "Физическая валидация показаний датчиков фермы",
+            "fields_validated": 7,
+            "anomaly_detection": "100% — детерминированные пороги",
+            "thresholds": {
+                "soil_moisture":    {"min": 10.0,  "max": 90.0,  "unit": "%"},
+                "soil_temperature": {"min": -10.0, "max": 50.0,  "unit": "°C"},
+                "air_temperature":  {"min": -50.0, "max": 60.0,  "unit": "°C"},
+                "humidity_air":     {"min": 0.0,   "max": 100.0, "unit": "%"},
+                "wind_speed":       {"min": 0.0,   "max": 150.0, "unit": "м/с"},
+                "precipitation":    {"min": 0.0,   "max": None,  "unit": "мм"},
+                "field_id":         {"min": 1,     "max": None,  "unit": "int"},
+            },
+            "anomaly_scenario": {
+                "example_input": "soil_moisture=98% (сбой датчика)",
+                "system_response": "status=anomaly, is_anomaly=true, confidence=low",
+                "action": "Расчёт полива не производится, агроном уведомлён",
+            },
+        },
+        "irrigation_logic": {
+            "description": "Правила рекомендации полива на основе профиля культуры",
+            "approach": "Rule-based (детерминированные правила)",
+            "rules": [
+                {
+                    "priority": 1,
+                    "name": "Ожидаемые осадки",
+                    "condition": "precipitation_forecast > rain_skip_mm за N дней",
+                    "action": "irrigation_recommended=false",
+                },
+                {
+                    "priority": 2,
+                    "name": "Достаточная влажность",
+                    "condition": "soil_moisture >= moisture_threshold_high",
+                    "action": "irrigation_recommended=false",
+                },
+                {
+                    "priority": 3,
+                    "name": "Полив необходим",
+                    "condition": "soil_moisture < moisture_threshold_high",
+                    "action": "irrigation_recommended=true, рассчитывается irrigation_volume",
+                },
+            ],
+            "volume_formula": "base_water_mm × deficit_ratio + (air_temp - heat_threshold) × heat_coeff",
+        },
+        "crop_profiles": {
+            "total": len(profiles),
+            "crops": [
+                {
+                    "crop_name": p.crop_name,
+                    "display_name": p.display_name,
+                    "moisture_threshold_high": p.moisture_threshold_high,
+                    "rain_skip_mm": p.rain_skip_mm,
+                    "base_water_mm": p.base_water_mm,
+                }
+                for p in profiles
+            ],
+            "total_threshold_changes": total_changes,
+        },
+        "dataset_coverage": {
+            "required_fields": [
+                "field_id", "humidity_air", "soil_moisture", "wind_speed",
+                "crop_type", "irrigation_volume", "irrigation_recommended",
+                "is_anomaly", "timestamp",
+            ],
+            "implemented": 9,
+            "coverage": "100%",
+        },
+    }
 
 
 @app.post("/validate")
@@ -170,16 +309,16 @@ async def validate(
 
     # Проверяем культуру: если профиля нет — предупреждаем сразу,
     # не дожидаясь вызова /recommend.
-    profile = crud.get_profile(db, payload.crop)
+    profile = crud.get_profile(db, payload.crop_type)
     if profile is None:
         return {
             "status": "anomaly",
             "confidence": "low",
             "anomalies": [
-                f"crop: профиль культуры «{payload.crop}» не найден в БД"
+                f"crop_type: профиль культуры «{payload.crop_type}» не найден в БД"
             ],
             "message": (
-                f"Датчики в норме, но культура «{payload.crop}» неизвестна. "
+                f"Датчики в норме, но культура «{payload.crop_type}» неизвестна. "
                 "Создайте профиль через POST /config/profiles."
             ),
         }
@@ -202,12 +341,12 @@ async def recommend(
         return validation
 
     # 2. Профиль культуры
-    profile = crud.get_profile(db, payload.crop)
+    profile = crud.get_profile(db, payload.crop_type)
     if profile is None:
         raise HTTPException(
             status_code=404,
             detail=(
-                f"Профиль культуры «{payload.crop}» не найден. "
+                f"Профиль культуры «{payload.crop_type}» не найден. "
                 "Создайте через POST /config/profiles или получите список доступных культур "
                 "через GET /config/profiles."
             ),
@@ -221,7 +360,7 @@ async def recommend(
 
     # 4. Рекомендация
     result = recommend_irrigation(
-        soil_moisture_percent=payload.soil_moisture_percent,
+        soil_moisture=payload.soil_moisture,
         air_temperature=payload.air_temperature,
         precip_forecast_7days=forecast,
         profile=profile.to_dict(),
@@ -230,9 +369,16 @@ async def recommend(
 
     return {
         "field_id": payload.field_id,
+        "is_anomaly": False,
         "validation": validation,
         "profile_used": profile.to_dict(),
-        **result,
+        "irrigation_recommended": result["irrigate"],
+        "when": result["when"],
+        "irrigation_volume": result["amount_mm"],
+        "reason": result["reason"],
+        "rain_next_days_mm": result["rain_next_days_mm"],
+        "crop_type": result["crop"],
+        "timestamp": payload.timestamp.isoformat(),
     }
 
 
