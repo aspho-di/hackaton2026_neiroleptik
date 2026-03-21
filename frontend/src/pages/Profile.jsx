@@ -3,6 +3,10 @@ import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
 import { getUser, removeUser } from '../auth'
 import { useFields } from '../hooks/useFields'
+
+function getCompletedRecs() {
+  return Number(localStorage.getItem('completed_recommendations') || 0)
+}
 import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
 
@@ -81,7 +85,10 @@ export default function Profile() {
   const district     = user?.district     || '—'
   const email        = user?.email        || '—'
   const phone        = user?.phone        || '—'
-  const stats        = user?.stats        || { total_fields: 5, active_anomalies: 1, completed_recommendations: 0 }
+
+  const totalFields        = fields.length
+  const activeAnomalies    = fields.filter(f => f.status === 'anomaly').length
+  const completedRecs      = getCompletedRecs()
 
   function handleLogout() {
     removeUser()
@@ -145,9 +152,9 @@ export default function Profile() {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <StatCard icon={<WheatEmoji size={24} />}         value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
-          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={stats.active_anomalies}           label="Активных аномалий"      valueColor="var(--color-anomaly)" />
-          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={stats.completed_recommendations}  label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
+          <StatCard icon={<WheatEmoji size={24} />}                                          value={totalFields}     label="Полей всего"            valueColor="var(--color-text)" />
+          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={activeAnomalies} label="Активных аномалий"      valueColor="var(--color-anomaly)" />
+          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={completedRecs}   label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
         </div>
 
         {/* Contact & info card */}
