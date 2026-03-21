@@ -23,7 +23,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function PrecipChart({ data, height = 180 }) {
-  const vals = data || []
+  const vals = Array.isArray(data) ? data.filter(v => v != null) : []
   const chartData = vals.map((mm, i) => ({
     day: DAY_LABELS[i] ?? `День ${i + 1}`,
     mm,

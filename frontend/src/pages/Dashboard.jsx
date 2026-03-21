@@ -66,7 +66,7 @@ export default function Dashboard() {
 
   const filteredFields = useMemo(() => {
     return allFields.filter(f => {
-      const matchSearch = !search || f.name.toLowerCase().includes(search.toLowerCase())
+      const matchSearch = !search || (f.name?.toLowerCase() ?? '').includes(search.toLowerCase())
       const matchStatus = statusFilter === 'all' || f.status === statusFilter
       const matchCrop   = cropFilter === 'all'   || f.crop === cropFilter
       return matchSearch && matchStatus && matchCrop

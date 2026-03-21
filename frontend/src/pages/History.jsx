@@ -385,7 +385,7 @@ export default function History() {
                   {predictions.map(p => (
                     <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '10px 14px', color: 'var(--color-text-muted)' }}>
-                        {new Date(p.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(p.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: '#4caf50' }}>{p.yield_prediction} ц/га</td>
                       <td style={{ padding: '10px 14px' }}>{p.irrigation_recommendation} мм</td>

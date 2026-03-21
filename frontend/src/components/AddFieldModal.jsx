@@ -128,10 +128,10 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
 
   // Load districts from API (with fallback)
   useEffect(() => {
-    fetchDistricts().then(data => {
-      setDistricts(data)
-      setLoadingDistricts(false)
-    })
+    fetchDistricts()
+      .then(data => { if (Array.isArray(data)) setDistricts(data) })
+      .catch(() => {})
+      .finally(() => setLoadingDistricts(false))
   }, [])
 
   function handleChange(e) {

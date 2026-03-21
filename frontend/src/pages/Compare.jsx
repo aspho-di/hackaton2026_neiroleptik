@@ -127,8 +127,8 @@ function CompareTable({ items }) {
             const scores = row.numeric
               ? items.map(item => (row.score ? row.score(item) : (row.higherIsBetter ? 1 : -1) * row.get(item)))
               : null
-            const maxScore = scores ? Math.max(...scores) : null
-            const minScore = scores ? Math.min(...scores) : null
+            const maxScore = scores?.length ? Math.max(...scores) : null
+            const minScore = scores?.length ? Math.min(...scores) : null
 
             return (
               <tr key={row.label}>
