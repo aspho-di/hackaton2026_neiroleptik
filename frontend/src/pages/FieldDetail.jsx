@@ -10,7 +10,6 @@ import { fetchForecast, fetchCurrentWeather, deleteField } from '../api/client'
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
-import Navbar from '../components/Navbar'
 import AnomalyAlert from '../components/AnomalyAlert'
 import PrecipChart from '../components/PrecipChart'
 import StatusBadge from '../components/StatusBadge'
@@ -315,26 +314,20 @@ export default function FieldDetail() {
 
   if (fieldsLoading) {
     return (
-      <>
-        <Navbar />
-        <div style={{ textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
-          Загрузка...
-        </div>
-      </>
+      <div style={{ textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
+        Загрузка...
+      </div>
     )
   }
 
   if (!field) {
     return (
-      <>
-        <Navbar />
-        <div style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-          Поле не найдено.{' '}
-          <button onClick={() => navigate('/')} style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-            На главную
-          </button>
-        </div>
-      </>
+      <div style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+        Поле не найдено.{' '}
+        <button onClick={() => navigate('/')} style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+          На главную
+        </button>
+      </div>
     )
   }
 
@@ -346,8 +339,6 @@ export default function FieldDetail() {
 
   return (
     <>
-      <Navbar />
-
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
 
         {/* Back */}

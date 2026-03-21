@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import Navbar from '../components/Navbar'
 import { MOCK_ALERTS } from '../mockData'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck } from '../components/icons/Icons'
@@ -52,7 +51,6 @@ export default function Alerts() {
 
   return (
     <>
-      <Navbar />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 48px' }}>
 
         {/* Header */}
