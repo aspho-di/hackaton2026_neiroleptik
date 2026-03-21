@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Виртуальное окружение
+.venv/
+venv/
+env/
+
+# Данные (сырые и обработанные)
+data/raw/
+data/processed/
+
+# Модель (большой бинарный файл)
+models/*.pkl
+models/*.joblib
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Переменные окружения
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Логи
+*.log
