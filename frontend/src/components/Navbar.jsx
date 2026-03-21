@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { getUser } from '../auth'
 import WheatEmoji from './icons/WheatEmoji'
-import { IconBarChart, IconDroplets, IconBell, IconCompare } from './icons/Icons'
+import { IconBarChart, IconDroplets, IconBell, IconCompare, IconSun, IconMoon } from './icons/Icons'
 import { MOCK_ALERTS } from '../mockData'
 
 function Avatar({ name, size = 36 }) {
@@ -76,6 +77,20 @@ export default function Navbar() {
   const readIds     = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
   const unreadCount = MOCK_ALERTS.filter(a => !readIds.includes(a.id)).length
 
+  const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
+
+  function toggleTheme() {
+    const next = !dark
+    setDark(next)
+    if (next) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+      localStorage.setItem('theme', 'light')
+    }
+  }
+
   return (
     <nav style={{
       background: 'var(--color-primary)',
@@ -110,7 +125,26 @@ export default function Navbar() {
           <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
           <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />
           <NavIconBtn to="/alerts"     icon={<IconBell      size={19} color="rgba(255,255,255,0.85)" />} label="Уведомления" badge={unreadCount} />
-          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 8px' }} />
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 4px 0 8px' }} />
+          <button
+            onClick={toggleTheme}
+            title={dark ? 'Светлая тема' : 'Тёмная тема'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 8,
+              background: 'transparent', border: 'none',
+              cursor: 'pointer', flexShrink: 0,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.10)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            {dark
+              ? <IconSun  size={19} color="rgba(255,255,255,0.85)" />
+              : <IconMoon size={19} color="rgba(255,255,255,0.85)" />
+            }
+          </button>
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 8px 0 4px' }} />
           <div onClick={() => navigate('/profile')} style={{ flexShrink: 0 }}>
             <Avatar name={name} size={36} />
           </div>
