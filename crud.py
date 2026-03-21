@@ -54,6 +54,7 @@ def get_history(
     """
     stmt = select(ThresholdHistory).order_by(ThresholdHistory.changed_at.desc())
     if crop_name:
+        # FIX B7: нормализуем crop_name для единообразия с хранимыми значениями
         stmt = stmt.where(ThresholdHistory.crop_name == crop_name.lower().strip())
     stmt = stmt.limit(limit)
     result = db.execute(stmt)
@@ -76,7 +77,13 @@ def create_profile(
     heat_coeff: float = 0.4,
     description: str | None = None,
 ) -> CropProfile:
-    """Создаёт новый профиль культуры."""
+    """
+    Создаёт новый профиль культуры.
+
+    FIX B5: после создания профиля записывает начальное состояние в историю,
+    чтобы аудит отражал полный жизненный цикл значений, а не только изменения.
+    """
+    now = datetime.now(timezone.utc)
     profile = CropProfile(
         crop_name=crop_name.lower().strip(),
         display_name=display_name,
@@ -89,8 +96,31 @@ def create_profile(
         heat_coeff=heat_coeff,
         description=description,
         updated_by=created_by,
+        created_at=now,
+        updated_at=now,
     )
     db.add(profile)
+    db.flush()  # получаем profile.id до commit
+
+    # Записываем начальные значения всех изменяемых полей в историю
+    initial_history: list[ThresholdHistory] = []
+    for field in sorted(PATCHABLE_FIELDS):
+        value = getattr(profile, field)
+        if value is None:
+            continue
+        initial_history.append(
+            ThresholdHistory(
+                profile_id=profile.id,
+                crop_name=profile.crop_name,
+                field_name=field,
+                old_value=None,        # None означает "поле создано впервые"
+                new_value=str(value),
+                changed_by=created_by,
+                changed_at=now,
+                comment="Начальные значения при создании профиля",
+            )
+        )
+    db.add_all(initial_history)
     db.commit()
     db.refresh(profile)
     return profile
@@ -111,29 +141,44 @@ def update_profile(
     Parameters
     ----------
     profile    : CropProfile — объект из БД
-    updates    : dict — только изменяемые поля (из PATCHABLE_FIELDS)
+    updates    : dict — только изменяемые поля (из PATCHABLE_FIELDS).
+                 Служебные поля changed_by/comment должны быть исключены
+                 вызывающей стороной (api.py), но функция повторно фильтрует
+                 через PATCHABLE_FIELDS — защита от прямого вызова crud.
+                 FIX B6: двойная фильтрация делает crud независимым от api.
     changed_by : str — кто вносит изменения
     comment    : str | None — причина изменения
     """
     history_entries: list[ThresholdHistory] = []
+    now = datetime.now(timezone.utc)
 
     for field, new_value in updates.items():
+        # FIX B6: crud сам фильтрует недопустимые поля независимо от api.py
         if field not in PATCHABLE_FIELDS:
             continue
 
         old_value = getattr(profile, field)
 
-        # Пишем в историю только если значение реально изменилось
-        if str(old_value) != str(new_value):
+        # Пишем в историю только если значение реально изменилось.
+        # Приводим new_value к типу текущего поля, чтобы избежать ложных
+        # срабатываний вида str(70.0) != str(70) при одинаковых числовых
+        # значениях (например, когда клиент шлёт int вместо float).
+        field_type = type(old_value)
+        try:
+            typed_new = field_type(new_value)
+        except (TypeError, ValueError):
+            typed_new = new_value
+
+        if old_value != typed_new:
             history_entries.append(
                 ThresholdHistory(
                     profile_id=profile.id,
                     crop_name=profile.crop_name,
                     field_name=field,
                     old_value=str(old_value),
-                    new_value=str(new_value),
+                    new_value=str(typed_new),
                     changed_by=changed_by,
-                    changed_at=datetime.now(timezone.utc),
+                    changed_at=now,
                     comment=comment,
                 )
             )
@@ -141,7 +186,9 @@ def update_profile(
 
     if history_entries:
         profile.updated_by = changed_by
-        profile.updated_at = datetime.now(timezone.utc)
+        # FIX B14: явно выставляем updated_at — onupdate на колонке
+        # не срабатывает при ручном setattr + commit без dirty-tracking ORM.
+        profile.updated_at = now
         db.add_all(history_entries)
         db.commit()
         db.refresh(profile)
@@ -158,8 +205,10 @@ DEFAULT_PROFILES: list[dict] = [
         "moisture_threshold_high": 60.0,
         "moisture_threshold_low": 25.0,
         "rain_skip_mm": 4.0,
+        "rain_skip_days": 2,
         "base_water_mm": 15.0,
         "heat_threshold": 28.0,
+        "heat_coeff": 0.4,
         "description": "Озимая и яровая пшеница",
     },
     {
@@ -168,8 +217,10 @@ DEFAULT_PROFILES: list[dict] = [
         "moisture_threshold_high": 75.0,
         "moisture_threshold_low": 40.0,
         "rain_skip_mm": 6.0,
+        "rain_skip_days": 3,
         "base_water_mm": 25.0,
         "heat_threshold": 22.0,
+        "heat_coeff": 0.5,
         "description": "Томаты открытого и закрытого грунта",
     },
     {
@@ -178,8 +229,10 @@ DEFAULT_PROFILES: list[dict] = [
         "moisture_threshold_high": 65.0,
         "moisture_threshold_low": 30.0,
         "rain_skip_mm": 5.0,
+        "rain_skip_days": 2,
         "base_water_mm": 20.0,
         "heat_threshold": 30.0,
+        "heat_coeff": 0.4,
         "description": "Кукуруза на зерно и силос",
     },
     {
@@ -188,8 +241,10 @@ DEFAULT_PROFILES: list[dict] = [
         "moisture_threshold_high": 55.0,
         "moisture_threshold_low": 20.0,
         "rain_skip_mm": 4.0,
+        "rain_skip_days": 1,
         "base_water_mm": 12.0,
         "heat_threshold": 30.0,
+        "heat_coeff": 0.3,
         "description": "Засухоустойчивая культура",
     },
 ]
@@ -204,11 +259,7 @@ def seed_default_profiles(db: Session) -> int:
     if existing > 0:
         return 0
 
-    added = 0
     for data in DEFAULT_PROFILES:
-        profile = CropProfile(**data, updated_by="system")
-        db.add(profile)
-        added += 1
+        create_profile(db, created_by="system", **data)
 
-    db.commit()
-    return added
+    return len(DEFAULT_PROFILES)

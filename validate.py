@@ -9,6 +9,9 @@ SOIL_MOISTURE_MIN = 10.0
 SOIL_MOISTURE_MAX = 90.0
 SOIL_TEMP_MIN = -10.0
 SOIL_TEMP_MAX = 50.0
+# FIX B12: физические пределы для температуры воздуха
+AIR_TEMP_MIN = -50.0
+AIR_TEMP_MAX = 60.0
 
 
 def validate_sensor_data(data: dict[str, Any]) -> dict[str, Any]:
@@ -19,6 +22,24 @@ def validate_sensor_data(data: dict[str, Any]) -> dict[str, Any]:
                                    "anomalies": [...], "message": "..."}
     """
     anomalies: list[str] = []
+
+    # ── FIX B13: field_id ─────────────────────────────────────────────────────
+    field_id = data.get("field_id")
+    if field_id is None:
+        anomalies.append("field_id: поле отсутствует")
+    elif not isinstance(field_id, int) or isinstance(field_id, bool):
+        anomalies.append("field_id: ожидается целое число")
+    elif field_id <= 0:
+        anomalies.append(f"field_id: {field_id} — должен быть положительным целым")
+
+    # ── FIX B13: crop ─────────────────────────────────────────────────────────
+    crop = data.get("crop")
+    if crop is None:
+        anomalies.append("crop: поле отсутствует")
+    elif not isinstance(crop, str):
+        anomalies.append("crop: ожидается строка")
+    elif not crop.strip():
+        anomalies.append("crop: не может быть пустой строкой")
 
     # ── Влажность почвы ───────────────────────────────────────────────────────
     moisture = data.get("soil_moisture_percent")
@@ -42,6 +63,18 @@ def validate_sensor_data(data: dict[str, Any]) -> dict[str, Any]:
         anomalies.append(
             f"soil_temperature: {soil_temp}°C вне диапазона "
             f"[{SOIL_TEMP_MIN}–{SOIL_TEMP_MAX}°C]"
+        )
+
+    # ── FIX B12: температура воздуха ──────────────────────────────────────────
+    air_temp = data.get("air_temperature")
+    if air_temp is None:
+        anomalies.append("air_temperature: поле отсутствует")
+    elif not isinstance(air_temp, (int, float)):
+        anomalies.append("air_temperature: ожидается числовое значение")
+    elif not (AIR_TEMP_MIN <= float(air_temp) <= AIR_TEMP_MAX):
+        anomalies.append(
+            f"air_temperature: {air_temp}°C вне диапазона "
+            f"[{AIR_TEMP_MIN}–{AIR_TEMP_MAX}°C]"
         )
 
     # ── Осадки в прогнозе ─────────────────────────────────────────────────────
