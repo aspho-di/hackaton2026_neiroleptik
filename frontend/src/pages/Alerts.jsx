@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MOCK_ALERTS } from '../mockData'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
-import { IconWarning, IconCircleAlert, IconCheck } from '../components/icons/Icons'
+import { IconWarning, IconCircleAlert, IconCheck, IconX } from '../components/icons/Icons'
 import { getUser } from '../auth'
 import { loadSavedFields } from '../components/AddFieldModal'
 
@@ -36,22 +36,23 @@ const SEV = {
 function getReadIds() {
   try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] }
 }
+function getDeletedIds() {
+  try { return JSON.parse(localStorage.getItem('alerts_deleted') || '[]') } catch { return [] }
+}
 
 export default function Alerts() {
   const user      = getUser()
   const hasFields = loadSavedFields().length > 0
 
-  const [filter,  setFilter]  = useState('all')
-  const [readIds, setReadIds] = useState(getReadIds)
-  const [alerts,  setAlerts]  = useState(() => hasFields ? MOCK_ALERTS : [makeWelcome(user)])
+  const [filter,     setFilter]     = useState('all')
+  const [readIds,    setReadIds]    = useState(getReadIds)
+  const [deletedIds, setDeletedIds] = useState(getDeletedIds)
+  const [alerts,     setAlerts]     = useState(() => hasFields ? MOCK_ALERTS : [makeWelcome(user)])
 
   useEffect(() => {
     fetchAlerts()
       .then(data => {
-        if (data && Array.isArray(data) && data.length > 0) {
-          setAlerts(data)
-        }
-        // if API returns nothing — keep initial state (welcome or mock)
+        if (data && Array.isArray(data) && data.length > 0) setAlerts(data)
       })
       .catch(() => {})
   }, [])
@@ -66,13 +67,34 @@ export default function Alerts() {
   }
 
   function markAllRead() {
-    const all = alerts.map(a => a.id)
-    setReadIds(all)
-    localStorage.setItem('alerts_read', JSON.stringify(all))
+    const all = visible.map(a => a.id)
+    setReadIds(prev => {
+      const next = [...new Set([...prev, ...all])]
+      localStorage.setItem('alerts_read', JSON.stringify(next))
+      return next
+    })
   }
 
-  const filtered = alerts.filter(a => filter === 'all' || a.type === filter)
-  const unread   = alerts.filter(a => !readIds.includes(a.id)).length
+  function deleteAlert(id) {
+    setDeletedIds(prev => {
+      const next = [...prev, id]
+      localStorage.setItem('alerts_deleted', JSON.stringify(next))
+      return next
+    })
+  }
+
+  function deleteAll() {
+    const ids = filtered.map(a => a.id)
+    setDeletedIds(prev => {
+      const next = [...new Set([...prev, ...ids])]
+      localStorage.setItem('alerts_deleted', JSON.stringify(next))
+      return next
+    })
+  }
+
+  const visible  = alerts.filter(a => !deletedIds.includes(a.id))
+  const filtered = visible.filter(a => filter === 'all' || a.type === filter)
+  const unread   = visible.filter(a => !readIds.includes(a.id)).length
 
   return (
     <>
@@ -88,23 +110,42 @@ export default function Alerts() {
               {unread > 0 ? `${unread} непрочитанных` : 'Все уведомления прочитаны'}
             </p>
           </div>
-          {unread > 0 && (
-            <button
-              onClick={markAllRead}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px', border: '1px solid var(--color-border)',
-                borderRadius: 8, background: 'var(--color-surface)',
-                fontSize: 13, cursor: 'pointer', color: 'var(--color-text-muted)',
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-text-muted)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
-            >
-              <IconCheck size={14} color="var(--color-normal)" />
-              Прочитать все
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {unread > 0 && (
+              <button
+                onClick={markAllRead}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', border: '1px solid var(--color-border)',
+                  borderRadius: 8, background: 'var(--color-surface)',
+                  fontSize: 13, cursor: 'pointer', color: 'var(--color-text-muted)',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-text-muted)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+              >
+                <IconCheck size={14} color="var(--color-normal)" />
+                Прочитать все
+              </button>
+            )}
+            {filtered.length > 0 && (
+              <button
+                onClick={deleteAll}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', border: '1px solid var(--color-border)',
+                  borderRadius: 8, background: 'var(--color-surface)',
+                  fontSize: 13, cursor: 'pointer', color: 'var(--color-text-muted)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-anomaly)'; e.currentTarget.style.color = 'var(--color-anomaly)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)' }}
+              >
+                <IconX size={14} color="currentColor" />
+                Удалить все
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filter tabs */}
@@ -181,22 +222,40 @@ export default function Alerts() {
                       </div>
                     </div>
                   </div>
-                  {!isRead && (
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    {!isRead && (
+                      <button
+                        onClick={() => markRead(alert.id)}
+                        title="Отметить прочитанным"
+                        style={{
+                          padding: '5px 12px', border: '1px solid var(--color-border)',
+                          borderRadius: 6, background: 'var(--color-surface)', fontSize: 12,
+                          cursor: 'pointer', color: 'var(--color-text-muted)',
+                          whiteSpace: 'nowrap', transition: 'border-color 0.15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-text-muted)'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+                      >
+                        Прочитано
+                      </button>
+                    )}
                     <button
-                      onClick={() => markRead(alert.id)}
+                      onClick={() => deleteAlert(alert.id)}
+                      title="Удалить уведомление"
                       style={{
-                        padding: '5px 12px', border: '1px solid var(--color-border)',
-                        borderRadius: 6, background: 'var(--color-surface)', fontSize: 12,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 30, height: 30, borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
                         cursor: 'pointer', color: 'var(--color-text-muted)',
-                        flexShrink: 0, whiteSpace: 'nowrap',
-                        transition: 'border-color 0.15s',
+                        transition: 'all 0.15s', flexShrink: 0,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-text-muted)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-anomaly)'; e.currentTarget.style.color = 'var(--color-anomaly)'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'var(--color-surface)' }}
                     >
-                      Прочитано
+                      <IconX size={13} color="currentColor" />
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             )
