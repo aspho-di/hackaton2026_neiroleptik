@@ -21,6 +21,21 @@ export default function NotFound() {
 
 
 
+      {/* Холмы */}
+      <svg
+        viewBox="0 0 800 200"
+        style={{
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0,
+          width: '100%', height: 200,
+          pointerEvents: 'none', zIndex: 0,
+        }}
+        preserveAspectRatio="xMidYMax slice"
+      >
+        <path d="M0 180 Q200 100 400 140 Q600 180 800 120 L800 200 L0 200Z" fill="#c8e6c9" />
+        <path d="M0 200 Q150 150 350 165 Q550 180 800 150 L800 200 L0 200Z" fill="#a5d6a7" />
+      </svg>
+
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* 404 number */}
