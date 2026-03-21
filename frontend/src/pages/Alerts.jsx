@@ -2,6 +2,23 @@ import { useState, useEffect } from 'react'
 import { MOCK_ALERTS } from '../mockData'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck } from '../components/icons/Icons'
+import { getUser } from '../auth'
+import { loadSavedFields } from '../components/AddFieldModal'
+
+function makeWelcome(user) {
+  const name = user?.name?.trim().split(' ').slice(1, 2).join('') || 'Агроном'
+  return {
+    id: 'welcome',
+    type: 'info',
+    severity: 'info',
+    title: `Добро пожаловать, ${name}!`,
+    message: 'Вы успешно зарегистрировались в системе. Добавьте первый участок на главной странице, чтобы начать получать прогнозы урожайности и рекомендации по поливу.',
+    action: null,
+    district: '',
+    created_at: new Date().toISOString(),
+    is_read: false,
+  }
+}
 
 const FILTER_TABS = [
   { key: 'all',       label: 'Все' },
@@ -21,13 +38,21 @@ function getReadIds() {
 }
 
 export default function Alerts() {
+  const user      = getUser()
+  const hasFields = loadSavedFields().length > 0
+
   const [filter,  setFilter]  = useState('all')
   const [readIds, setReadIds] = useState(getReadIds)
-  const [alerts,  setAlerts]  = useState(MOCK_ALERTS)
+  const [alerts,  setAlerts]  = useState(() => hasFields ? MOCK_ALERTS : [makeWelcome(user)])
 
   useEffect(() => {
     fetchAlerts()
-      .then(data => { if (data && Array.isArray(data)) setAlerts(data) })
+      .then(data => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setAlerts(data)
+        }
+        // if API returns nothing — keep initial state (welcome or mock)
+      })
       .catch(() => {})
   }, [])
 
