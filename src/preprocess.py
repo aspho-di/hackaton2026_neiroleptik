@@ -1,6 +1,12 @@
 import pandas as pd
 import numpy as np
 
+# Порог урожайности для бинарной классификации (ц/га)
+# 1 = урожайность выше медианы (хороший урожай)
+# 0 = урожайность ниже медианы (низкий урожай)
+YIELD_THRESHOLD = None  # считается автоматически из данных
+
+
 def aggregate_season(df: pd.DataFrame) -> pd.DataFrame:
     """
     Агрегирует дневные данные в сезонные фичи по годам.
@@ -20,11 +26,11 @@ def aggregate_season(df: pd.DataFrame) -> pd.DataFrame:
         temp_max=("temperature_2m_max", "max"),
         temp_min=("temperature_2m_min", "min"),
         precip_total=("precipitation_sum", "sum"),
-        precip_days=("precipitation_sum", lambda x: (x > 1).sum()),  # дней с осадками > 1мм
+        precip_days=("precipitation_sum", lambda x: (x > 1).sum()),
         wind_max=("windspeed_10m_max", "max"),
         evapotranspiration=("et0_fao_evapotranspiration", "sum"),
-        hot_days=("temperature_2m_max", lambda x: (x > 35).sum()),  # жарких дней
-        dry_days=("precipitation_sum", lambda x: (x == 0).sum()),   # сухих дней
+        hot_days=("temperature_2m_max", lambda x: (x > 35).sum()),
+        dry_days=("precipitation_sum", lambda x: (x == 0).sum()),
     ).reset_index()
 
     # Водный баланс = осадки - испаряемость
@@ -34,16 +40,10 @@ def aggregate_season(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_yield_data(weather_agg: pd.DataFrame, yield_csv: str = None) -> pd.DataFrame:
-    """
-    Подклеивает данные по урожайности к погодным фичам.
-    Если yield_csv не передан — генерируем синтетические данные для демо.
-    """
     if yield_csv:
         yield_df = pd.read_csv(yield_csv)
         df = weather_agg.merge(yield_df, on="year", how="inner")
     else:
-        # Синтетические данные урожайности пшеницы (ц/га)
-        # Логика: базовая урожайность + зависимость от осадков и жары
         print("⚠️  Реальных данных урожайности нет — генерируем синтетику для демо")
         df = weather_agg.copy()
         np.random.seed(42)
@@ -56,12 +56,19 @@ def add_yield_data(weather_agg: pd.DataFrame, yield_csv: str = None) -> pd.DataF
             + np.random.normal(0, 2, len(df))
         ).clip(10, 65)
 
+    # Порог = медиана ТЕКУЩЕГО датасета → гарантирует баланс 50/50
+    threshold = df["yield_centner_per_ha"].median()
+    df["yield_actual"] = (df["yield_centner_per_ha"] >= threshold).astype(int)
+    
+    print(f"Порог урожайности: {threshold:.2f} ц/га")
+    print(f"Распределение: {df['yield_actual'].value_counts().to_dict()}")
+    
     return df
 
 
 def prepare_features(df: pd.DataFrame):
     """
-    Разбивает датафрейм на X (фичи) и y (таргет).
+    Разбивает датафрейм на X (фичи) и y (бинарный таргет yield_actual 0/1).
     """
     feature_cols = [
         "temp_mean", "temp_max", "temp_min",
@@ -70,14 +77,16 @@ def prepare_features(df: pd.DataFrame):
         "hot_days", "dry_days", "water_balance"
     ]
     X = df[feature_cols]
-    y = df["yield_centner_per_ha"]
+    y = df["yield_actual"]  # 0 или 1
     return X, y
 
 
-    if __name__ == "__main__":
-        df_raw = pd.read_csv("../data/raw/weather_historical.csv")
-        df_agg = aggregate_season(df_raw)
-        df_full = add_yield_data(df_agg, yield_csv="../data/raw/yield_rostov.csv")
-        df_full.to_csv("../data/processed/dataset.csv", index=False)
-        print(f"Датасет готов: {len(df_full)} строк")
-        print(df_full.head())
+if __name__ == "__main__":
+    df_raw = pd.read_csv("../data/raw/weather_historical.csv")
+    df_agg = aggregate_season(df_raw)
+    df_full = add_yield_data(df_agg, yield_csv="../data/raw/yield_rostov.csv")
+    df_full.to_csv("../data/processed/dataset.csv", index=False)
+    print(f"Датасет готов: {len(df_full)} строк")
+    print(f"Порог урожайности: {YIELD_THRESHOLD} ц/га")
+    print(f"Распределение yield_actual: {df_full['yield_actual'].value_counts().to_dict()}")
+    print(df_full[["year", "yield_centner_per_ha", "yield_actual"]].to_string())
