@@ -1,5 +1,5 @@
-const BASE_URL = 'http://localhost:8080'
-const PY_URL   = 'http://localhost:8002'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const PY_URL   = import.meta.env.VITE_PY_URL  || 'http://localhost:8002'
 
 // ── Поля ──────────────────────────────────────────────────────────────────────
 export async function fetchFields() {
