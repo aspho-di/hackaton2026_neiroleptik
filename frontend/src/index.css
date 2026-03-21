@@ -21,24 +21,25 @@
 }
 
 html[data-theme="dark"] {
-  --color-primary:      #0d2b18;
-  --color-accent:       #4caf50;
-  --color-accent-hover: #388e3c;
-  --color-accent-light: #152a1a;
-  --color-bg:           #0b1610;
-  --color-surface:      #112117;
-  --color-text:         #d8edd9;
-  --color-text-muted:   #6b9970;
-  --color-border:       #1e3624;
+  /* Нейтральная угольная основа — зелень выделяется, не тонет */
+  --color-primary:      #1a4d2e;   /* навбар — оставляем насыщенным */
+  --color-accent:       #4ade80;   /* зелень ярче для тёмного фона */
+  --color-accent-hover: #22c55e;
+  --color-accent-light: rgba(74, 222, 128, 0.10);
+  --color-bg:           #0d1117;   /* тёмный charcoal, не зелёный */
+  --color-surface:      #161b22;   /* карточки */
+  --color-text:         #e6edf3;   /* чистый светло-серый */
+  --color-text-muted:   #8b949e;   /* приглушённый серый */
+  --color-border:       #2d333b;   /* граница */
 
-  --color-normal:       #4caf50;
-  --color-warning:      #f59e0b;
-  --color-anomaly:      #ef4444;
+  --color-normal:       #4ade80;
+  --color-warning:      #fbbf24;   /* тёплый янтарь */
+  --color-anomaly:      #f87171;   /* мягкий красный */
 
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.65);
 
-  --scrollbar-track:    #0b1610;
+  --scrollbar-track:    #0d1117;
 }
 
 *, *::before, *::after {

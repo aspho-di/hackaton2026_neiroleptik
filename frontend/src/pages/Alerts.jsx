@@ -11,9 +11,9 @@ const FILTER_TABS = [
 ]
 
 const SEV = {
-  critical: { bg: '#fff1f0', border: '#fca5a5', accent: '#ef4444', text: '#b91c1c' },
-  warning:  { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#92400e' },
-  info:     { bg: '#eff6ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1e40af' },
+  critical: { bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.25)',  accent: 'var(--color-anomaly)', text: 'var(--color-anomaly)' },
+  warning:  { bg: 'rgba(251,191,36,0.07)',   border: 'rgba(251,191,36,0.25)', accent: 'var(--color-warning)', text: 'var(--color-warning)' },
+  info:     { bg: 'rgba(59,130,246,0.07)',   border: 'rgba(59,130,246,0.25)', accent: '#3b82f6',              text: '#3b82f6' },
 }
 
 function getReadIds() {
