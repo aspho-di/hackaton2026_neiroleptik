@@ -10,6 +10,8 @@ import History from './pages/History'
 import IrrigationPlan from './pages/IrrigationPlan'
 import Alerts from './pages/Alerts'
 import Compare from './pages/Compare'
+import SeasonalCalendar from './pages/SeasonalCalendar'
+import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
 
@@ -43,6 +45,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/compare" element={
           <ProtectedRoute><Compare /></ProtectedRoute>
         } />
+        <Route path="/calendar" element={
+          <ProtectedRoute><SeasonalCalendar /></ProtectedRoute>
+        } />
+
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

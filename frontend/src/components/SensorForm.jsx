@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { validateSensorData, saveSensorData, fetchIrrigationRecommend } from '../api/client'
 import AnomalyAlert from './AnomalyAlert'
 import { IconCheck, IconX } from './icons/Icons'
+import { showToast } from './Toast'
 
 const inputStyle = {
   width: '100%',
@@ -99,6 +100,7 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
 
       setResult(irrigationData)
       onResult?.({ irrigation: irrigationData })
+      showToast('Данные датчика сохранены')
 
       if (irrigationData?.irrigate === true) {
         const prev = Number(localStorage.getItem('completed_recommendations') || 0)

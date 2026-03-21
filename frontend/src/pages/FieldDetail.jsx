@@ -9,6 +9,8 @@ import { fetchForecast, fetchCurrentWeather, deleteField } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning } from '../components/icons/Icons'
+import FieldMap from '../components/FieldMap'
+import Toast from '../components/Toast'
 import WheatEmoji from '../components/icons/WheatEmoji'
 import AnomalyAlert from '../components/AnomalyAlert'
 import PrecipChart from '../components/PrecipChart'
@@ -468,11 +470,15 @@ export default function FieldDetail() {
                 {/* Водный баланс — после расчёта */}
                 {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days ?? forecast?.precip_forecast_7days} />}
 
+                {/* Мини-карта */}
+                <FieldMap latitude={field?.latitude} longitude={field?.longitude} fieldName={field?.name} />
+
               </div>
             </div>
           </>
         )}
       </div>
+      <Toast />
     </>
   )
 }
