@@ -98,50 +98,63 @@ export default function Dashboard() {
 
         {/* Search & filters */}
         {allFields.length > 0 && (
-          <div style={{
-            display: 'flex', gap: 10, alignItems: 'center',
-            marginBottom: '16px', flexWrap: 'wrap',
-          }}>
-            {/* Search input */}
-            <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 320 }}>
-              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-                <IconSearch size={15} color="var(--color-text-muted)" />
-              </span>
-              <input
-                type="text"
-                placeholder="Поиск по названию..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 14px 9px 36px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 8, fontSize: 13,
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
-                }}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(76,175,80,0.12)' }}
-                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none' }}
-              />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+
+            {/* Row 1: search + crop pills */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: 300 }}>
+                <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+                  <IconSearch size={14} color="var(--color-text-muted)" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Поиск по названию..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{
+                    width: '100%', padding: '8px 12px 8px 33px',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8, fontSize: 13,
+                    background: 'var(--color-surface)', color: 'var(--color-text)',
+                    outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(76,175,80,0.12)' }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none' }}
+                />
+              </div>
+
+              {/* Crop pills */}
+              {[{ key: 'all', label: 'Все' }, ...CROPS].map(c => (
+                <button
+                  key={c.key}
+                  onClick={() => setCropFilter(c.key)}
+                  style={{
+                    padding: '7px 13px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                    border: `1px solid ${cropFilter === c.key ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                    background: cropFilter === c.key ? 'var(--color-accent-light)' : 'var(--color-surface)',
+                    color: cropFilter === c.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                    fontWeight: cropFilter === c.key ? 700 : 400,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {c.label}
+                </button>
+              ))}
             </div>
 
-            {/* Status filter */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {/* Row 2: status pills + clear */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               {STATUS_FILTERS.map(sf => (
                 <button
                   key={sf.key}
                   onClick={() => setStatusFilter(sf.key)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '7px 12px',
-                    borderRadius: 8,
+                    padding: '6px 11px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                     border: `1px solid ${statusFilter === sf.key ? 'var(--color-accent)' : 'var(--color-border)'}`,
                     background: statusFilter === sf.key ? 'var(--color-accent-light)' : 'var(--color-surface)',
                     color: statusFilter === sf.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
                     fontWeight: statusFilter === sf.key ? 700 : 400,
-                    fontSize: 13, cursor: 'pointer',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -149,25 +162,6 @@ export default function Dashboard() {
                   {sf.label}
                 </button>
               ))}
-            </div>
-
-            {/* Crop filter */}
-            <select
-              value={cropFilter}
-              onChange={e => setCropFilter(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                border: `1px solid ${cropFilter !== 'all' ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                borderRadius: 8, fontSize: 13,
-                background: 'var(--color-surface)',
-                color: cropFilter !== 'all' ? 'var(--color-accent)' : 'var(--color-text)',
-                outline: 'none', cursor: 'pointer',
-                fontWeight: cropFilter !== 'all' ? 600 : 400,
-              }}
-            >
-              <option value="all">Все культуры</option>
-              {CROPS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-            </select>
 
             {/* Clear filters */}
             {hasFilters && (
@@ -175,12 +169,10 @@ export default function Dashboard() {
                 onClick={clearFilters}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '7px 12px',
+                  padding: '6px 11px', marginLeft: 4,
                   borderRadius: 8, border: '1px solid var(--color-border)',
-                  background: 'transparent',
-                  color: 'var(--color-text-muted)',
-                  fontSize: 13, cursor: 'pointer',
-                  transition: 'color 0.15s',
+                  background: 'transparent', color: 'var(--color-text-muted)',
+                  fontSize: 13, cursor: 'pointer', transition: 'color 0.15s',
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-anomaly)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
@@ -189,6 +181,8 @@ export default function Dashboard() {
                 Сбросить
               </button>
             )}
+            </div>
+
           </div>
         )}
 
