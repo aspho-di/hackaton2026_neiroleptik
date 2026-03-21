@@ -233,7 +233,7 @@ export default function IrrigationPlan() {
                         background: f.skipped ? '#d1d5db' : STATUS_COLORS[f.status],
                         borderRadius: 7,
                         transition: 'width 0.6s ease',
-                        opacity: f.partial ? 0.7 : 1,
+                        opacity: 1,
                       }} />
                     </div>
                   </div>

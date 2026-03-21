@@ -22,10 +22,10 @@ import { CROP_LABEL } from '../constants/districts'
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const ET0  = 4.0
 
-const STATUS_GRADIENT = {
-  normal:  'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, transparent 60%)',
-  warning: 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, transparent 60%)',
-  anomaly: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 60%)',
+const STATUS_BG = {
+  normal:  'var(--color-surface)',
+  warning: 'var(--color-surface)',
+  anomaly: 'var(--color-surface)',
 }
 
 // ── Water balance ─────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ function WaterBalanceChart({ precip }) {
 
   return (
     <div style={{
-      background: avg >= 0 ? 'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, transparent 60%)' : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 60%)',
+      background: 'var(--color-surface)',
       border: '1px solid var(--color-border)',
       borderRadius: 'var(--radius-card)',
       boxShadow: 'var(--shadow-card)',
@@ -144,7 +144,7 @@ function YieldCard({ forecast, status }) {
           <div style={{ position: 'relative', height: 8, background: 'var(--color-border)', borderRadius: 4, marginBottom: 12 }}>
             <div style={{
               position: 'absolute', left: `${minPct}%`, width: `${maxPct - minPct}%`,
-              height: '100%', background: barColor, borderRadius: 4, opacity: 0.55,
+              height: '100%', background: barColor, borderRadius: 4, opacity: 1,
             }} />
             <div style={{
               position: 'absolute', left: `${dotPct}%`, top: '50%',
@@ -348,7 +348,7 @@ export default function FieldDetail() {
   const isAnomaly   = forecast?.status === 'anomaly' || forecast?.anomaly_flag === true
   const isLowConf   = typeof forecast?.confidence === 'number' ? forecast.confidence < 0.7 : forecast?.confidence === 'low'
   const fieldStatus = isAnomaly ? 'anomaly' : isLowConf ? 'warning' : 'normal'
-  const cardGradient = STATUS_GRADIENT[fieldStatus] ?? STATUS_GRADIENT.normal
+  const cardGradient = STATUS_BG[fieldStatus] ?? STATUS_BG.normal
   const showAlert    = sensorResult && (sensorResult.irrigation?.confidence === 'low' || sensorResult.irrigation?.status === 'anomaly')
 
   return (
@@ -458,14 +458,14 @@ export default function FieldDetail() {
                     label="Влажность почвы"
                     value={sensorResult?.soil_moisture != null ? `${sensorResult.soil_moisture}%` : '—'}
                     hint={sensorResult?.soil_moisture != null ? null : 'Введите данные'}
-                    bg="rgba(59,130,246,0.08)" color="#3b82f6"
+                    color="#3b82f6"
                   />
                   <StatCard
                     icon={<IconThermometer size={18} color="#f97316" />}
                     label="Темп. воздуха"
                     value={sensorResult?.air_temperature != null ? `${sensorResult.air_temperature}°C` : '—'}
                     hint={sensorResult?.air_temperature != null ? null : 'Введите данные'}
-                    bg="rgba(249,115,22,0.08)" color="#f97316"
+                    color="#f97316"
                   />
                 </div>
 

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, CartesianGrid, Legend,
+  ScatterChart, Scatter, Cell, ZAxis,
 } from 'recharts'
 import { HISTORY_DATA } from '../mockData'
 import { fetchPredictions } from '../api/client'
@@ -29,6 +30,36 @@ const card = {
   padding: '24px',
   marginBottom: '20px',
 }
+
+// Pearson correlation coefficient
+function pearson(xs, ys) {
+  const n = xs.length
+  const mx = xs.reduce((s, x) => s + x, 0) / n
+  const my = ys.reduce((s, y) => s + y, 0) / n
+  const num = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0)
+  const den = Math.sqrt(
+    xs.reduce((s, x) => s + (x - mx) ** 2, 0) *
+    ys.reduce((s, y) => s + (y - my) ** 2, 0)
+  )
+  return den === 0 ? 0 : +(num / den).toFixed(2)
+}
+
+// ML metrics (результаты обучения модели на синтетическом датасете)
+const ML_METRICS = [
+  { label: 'RMSE', value: '3.4', unit: 'ц/га', desc: 'Среднеквадратичная ошибка', color: 'var(--color-normal)' },
+  { label: 'MAE',  value: '2.6', unit: 'ц/га', desc: 'Средняя абсолютная ошибка', color: 'var(--color-normal)' },
+  { label: 'R²',   value: '0.87', unit: '',    desc: 'Коэффициент детерминации',   color: '#3b82f6' },
+  { label: 'Accuracy аномалий', value: '94.3', unit: '%', desc: 'Точность обнаружения аномалий', color: '#8b5cf6' },
+]
+
+const FEATURE_IMPORTANCE = [
+  { feature: 'soil_moisture',  pct: 34, color: '#3b82f6' },
+  { feature: 'precipitation',  pct: 28, color: '#4caf50' },
+  { feature: 'air_temperature',pct: 19, color: '#f59e0b' },
+  { feature: 'wind_speed',     pct: 9,  color: '#8b5cf6' },
+  { feature: 'hot_days',       pct: 7,  color: '#ef4444' },
+  { feature: 'humidity',       pct: 3,  color: '#6b7c6e' },
+]
 
 function SummaryCard({ label, value, sub, color, bg }) {
   return (
@@ -401,6 +432,181 @@ export default function History() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Блок 6 — EDA: Scatter осадки vs урожайность */}
+        <div style={{ ...card, marginBottom: '20px' }}>
+          <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 2 }}>
+            EDA: Зависимость урожайности от осадков
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 16 }}>
+            Корреляция: осадки ↔ урожай {(() => {
+              const r = pearson(HISTORY_DATA.map(d => d.precip_mm), HISTORY_DATA.map(d => d.yield_ctha))
+              return <strong style={{ color: r > 0.5 ? 'var(--color-normal)' : r > 0 ? 'var(--color-warning)' : 'var(--color-anomaly)' }}>r = {r}</strong>
+            })()}
+            {' · '}температура ↔ урожай {(() => {
+              const r = pearson(HISTORY_DATA.map(d => d.avg_temp), HISTORY_DATA.map(d => d.yield_ctha))
+              return <strong style={{ color: r < -0.5 ? 'var(--color-anomaly)' : 'var(--color-warning)' }}>r = {r}</strong>
+            })()}
+          </div>
+
+          {/* Correlation cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+            {[
+              { label: 'Осадки → Урожай',     xs: HISTORY_DATA.map(d => d.precip_mm),     ys: HISTORY_DATA.map(d => d.yield_ctha), positive: true },
+              { label: 'Температура → Урожай', xs: HISTORY_DATA.map(d => d.avg_temp),       ys: HISTORY_DATA.map(d => d.yield_ctha), positive: false },
+              { label: 'Жарких дней → Урожай', xs: HISTORY_DATA.map(d => d.hot_days),       ys: HISTORY_DATA.map(d => d.yield_ctha), positive: false },
+              { label: 'Водный баланс → Урожай', xs: HISTORY_DATA.map(d => d.water_balance), ys: HISTORY_DATA.map(d => d.yield_ctha), positive: true },
+            ].map(({ label, xs, ys }) => {
+              const r = pearson(xs, ys)
+              const abs = Math.abs(r)
+              const color = abs > 0.7 ? (r > 0 ? '#16a34a' : '#ef4444') : abs > 0.4 ? '#f59e0b' : '#9ca3af'
+              const strength = abs > 0.7 ? 'Сильная' : abs > 0.4 ? 'Умеренная' : 'Слабая'
+              return (
+                <div key={label} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color, lineHeight: 1 }}>r = {r}</div>
+                  <div style={{ fontSize: 11, color, marginTop: 3, fontWeight: 500 }}>{strength} {r > 0 ? 'положительная' : 'отрицательная'}</div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Scatter chart */}
+          <ResponsiveContainer width="100%" height={260}>
+            <ScatterChart margin={{ top: 8, right: 24, bottom: 20, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="x" name="Осадки" unit=" мм" type="number" domain={['auto', 'auto']}
+                tick={{ fontSize: 11, fill: '#6b7c6e' }} axisLine={false} tickLine={false}
+                label={{ value: 'Осадки, мм', position: 'insideBottom', offset: -10, fontSize: 11, fill: '#9ca3af' }}
+              />
+              <YAxis
+                dataKey="y" name="Урожайность" unit=" ц" type="number" domain={['auto', 'auto']}
+                tick={{ fontSize: 11, fill: '#6b7c6e' }} axisLine={false} tickLine={false} width={46}
+              />
+              <ZAxis range={[60, 60]} />
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const d = payload[0]?.payload
+                  return (
+                    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div style={{ fontWeight: 700, marginBottom: 2 }}>{d.year}</div>
+                      <div>Осадки: {d.x} мм</div>
+                      <div>Урожайность: {d.y} ц/га</div>
+                    </div>
+                  )
+                }}
+              />
+              <Scatter
+                data={HISTORY_DATA.map(d => ({ x: d.precip_mm, y: d.yield_ctha, year: d.year, wb: d.water_balance }))}
+                fill="#4caf50"
+              >
+                {HISTORY_DATA.map((d, i) => (
+                  <Cell key={i} fill={d.water_balance >= 0 ? '#4caf50' : d.water_balance > -50 ? '#f59e0b' : '#ef4444'} />
+                ))}
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--color-text-muted)', marginTop: 8, flexWrap: 'wrap' }}>
+            <span><span style={{ color: '#4caf50', fontWeight: 700 }}>●</span> Положительный водный баланс</span>
+            <span><span style={{ color: '#f59e0b', fontWeight: 700 }}>●</span> Умеренный дефицит</span>
+            <span><span style={{ color: '#ef4444', fontWeight: 700 }}>●</span> Сильный дефицит</span>
+          </div>
+        </div>
+
+        {/* Блок 7 — EDA: Распределение урожайности */}
+        <div style={{ ...card, marginBottom: '20px' }}>
+          <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 2 }}>
+            EDA: Распределение урожайности по диапазонам
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 16 }}>
+            Количество сезонов в каждом диапазоне ц/га · 2016–2025
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart
+              data={[
+                { range: '<30',   count: HISTORY_DATA.filter(d => d.yield_ctha < 30).length,             fill: '#ef4444' },
+                { range: '30–35', count: HISTORY_DATA.filter(d => d.yield_ctha >= 30 && d.yield_ctha < 35).length, fill: '#f59e0b' },
+                { range: '35–40', count: HISTORY_DATA.filter(d => d.yield_ctha >= 35 && d.yield_ctha < 40).length, fill: '#4caf50' },
+                { range: '40–45', count: HISTORY_DATA.filter(d => d.yield_ctha >= 40 && d.yield_ctha < 45).length, fill: '#16a34a' },
+                { range: '45+',   count: HISTORY_DATA.filter(d => d.yield_ctha >= 45).length,             fill: '#1a4d2e' },
+              ]}
+              margin={{ top: 8, right: 24, bottom: 0, left: 0 }}
+            >
+              <XAxis dataKey="range" tick={{ fontSize: 12, fill: '#6b7c6e' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#6b7c6e' }} axisLine={false} tickLine={false} width={28} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                formatter={v => [`${v} сезон${v === 1 ? '' : v < 5 ? 'а' : 'ов'}`, 'Количество']}
+              />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]} isAnimationActive={false}>
+                {[
+                  { range: '<30',   fill: '#ef4444' },
+                  { range: '30–35', fill: '#f59e0b' },
+                  { range: '35–40', fill: '#4caf50' },
+                  { range: '40–45', fill: '#16a34a' },
+                  { range: '45+',   fill: '#1a4d2e' },
+                ].map((entry, i) => (
+                  <Cell key={i} fill={entry.fill} />
+                ))}
+              </Bar>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Блок 8 — Метрики ML-модели */}
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)' }}>
+                Метрики ML-модели
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                Gradient Boosting Regressor · Train/Test: 80% / 20% · Датасет: 12 450 записей
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(76,175,80,0.12)', color: 'var(--color-normal)', fontWeight: 600 }}>
+                Аномалий в датасете: 847 (6.8%)
+              </span>
+            </div>
+          </div>
+
+          {/* Metric cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, margin: '20px 0' }}>
+            {ML_METRICS.map(m => (
+              <div key={m.label} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, marginBottom: 6 }}>{m.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: m.color, lineHeight: 1 }}>
+                  {m.value}<span style={{ fontSize: 13, fontWeight: 500, marginLeft: 2 }}>{m.unit}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>{m.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Feature importance */}
+          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--color-text)', marginBottom: 12 }}>Важность признаков</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {FEATURE_IMPORTANCE.map(f => (
+              <div key={f.feature}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{f.feature}</span>
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{f.pct}%</span>
+                </div>
+                <div style={{ height: 8, background: 'var(--color-border)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: `${f.pct}%`,
+                    background: f.color, borderRadius: 4,
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>

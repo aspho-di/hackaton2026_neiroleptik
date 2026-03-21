@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import FieldList from '../components/FieldList'
 import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
 import { getUser } from '../auth'
@@ -7,6 +7,117 @@ import Toast, { showToast } from '../components/Toast'
 import Onboarding from '../components/Onboarding'
 import { CROPS, CROP_LABEL } from '../constants/districts'
 import { IconSearch, IconX } from '../components/icons/Icons'
+
+const DATA_SOURCES = [
+  { key: 'go',      label: 'Go API',       url: 'http://localhost:8080/api/v1/fields', short: ':8080' },
+  { key: 'py',      label: 'ML-сервис',    url: 'http://localhost:8002/health',        short: ':8002' },
+  { key: 'weather', label: 'Open-Meteo',   url: 'https://api.open-meteo.com/v1/forecast?latitude=46.85&longitude=40.31&daily=precipitation_sum&forecast_days=1&timezone=Europe%2FMoscow', short: 'API' },
+]
+
+function DataSourcesWidget() {
+  const [statuses, setStatuses] = useState(() => Object.fromEntries(DATA_SOURCES.map(s => [s.key, 'checking'])))
+  const [lastCheck, setLastCheck] = useState(null)
+
+  const checkAll = useCallback(async () => {
+    setStatuses(Object.fromEntries(DATA_SOURCES.map(s => [s.key, 'checking'])))
+    const results = await Promise.all(DATA_SOURCES.map(async s => {
+      try {
+        const ctrl = new AbortController()
+        const timer = setTimeout(() => ctrl.abort(), 3000)
+        const res = await fetch(s.url, { signal: ctrl.signal, method: 'GET' })
+        clearTimeout(timer)
+        return [s.key, res.ok || res.status < 500 ? 'online' : 'offline']
+      } catch {
+        return [s.key, 'offline']
+      }
+    }))
+    setStatuses(Object.fromEntries(results))
+    setLastCheck(new Date())
+  }, [])
+
+  useEffect(() => { checkAll() }, [checkAll])
+
+  const allOnline  = Object.values(statuses).every(s => s === 'online')
+  const anyOffline = Object.values(statuses).some(s => s === 'offline')
+  const checking   = Object.values(statuses).some(s => s === 'checking')
+
+  const overallColor = checking ? '#f59e0b' : anyOffline ? '#ef4444' : '#4caf50'
+  const overallLabel = checking ? 'Проверка...' : anyOffline ? 'Нет связи' : 'Все активны'
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: 12, padding: '10px 16px',
+      marginBottom: 16, fontSize: 12,
+    }}>
+      {/* Overall indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 4 }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: '50%', background: overallColor, flexShrink: 0,
+          boxShadow: checking ? 'none' : `0 0 0 3px ${overallColor}22`,
+          animation: checking ? 'pulse 1s infinite' : 'none',
+        }} />
+        <span style={{ fontWeight: 700, color: overallColor, fontFamily: 'Montserrat, sans-serif', fontSize: 11 }}>
+          {overallLabel}
+        </span>
+      </div>
+
+      <span style={{ width: 1, height: 16, background: 'var(--color-border)', flexShrink: 0 }} />
+
+      {/* Per-source status */}
+      {DATA_SOURCES.map(src => {
+        const s = statuses[src.key]
+        const color = s === 'online' ? '#4caf50' : s === 'offline' ? '#ef4444' : '#f59e0b'
+        return (
+          <div key={src.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0,
+              animation: s === 'checking' ? 'pulse 1s infinite' : 'none',
+            }} />
+            <span style={{ color: 'var(--color-text-muted)' }}>
+              {src.label}
+              <span style={{ color: 'var(--color-text)', fontWeight: 600, marginLeft: 3 }}>
+                {s === 'online' ? '✓' : s === 'offline' ? '✗' : '…'}
+              </span>
+            </span>
+          </div>
+        )
+      })}
+
+      {/* Refresh + last check */}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        {lastCheck && !checking && (
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 11 }}>
+            {lastCheck.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+        )}
+        <button
+          onClick={checkAll}
+          disabled={checking}
+          title="Проверить соединение"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 26, height: 26, borderRadius: 6,
+            border: '1px solid var(--color-border)',
+            background: 'transparent', cursor: checking ? 'not-allowed' : 'pointer',
+            color: 'var(--color-text-muted)', transition: 'all 0.15s',
+            opacity: checking ? 0.5 : 1,
+          }}
+          onMouseEnter={e => { if (!checking) { e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.color = 'var(--color-accent)' } }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            style={{ animation: checking ? 'spin 1s linear infinite' : 'none' }}>
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const STATUS_FILTERS = [
   { key: 'all',     label: 'Все',               dot: null },
@@ -106,6 +217,9 @@ export default function Dashboard() {
             <StatPill key={card.key} dot={card.dot} label={card.label} count={allFields.filter(card.filter).length} />
           ))}
         </div>
+
+        {/* Data sources status */}
+        <DataSourcesWidget />
 
         {/* Search + filter button */}
         {allFields.length > 0 && (

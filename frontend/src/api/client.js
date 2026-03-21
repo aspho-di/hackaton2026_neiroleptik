@@ -61,12 +61,12 @@ export async function fetchForecast(field_id, latitude, longitude) {
 }
 
 // ── Датчики ───────────────────────────────────────────────────────────────────
-export async function saveSensorData(field_id, humidity, soil_moisture, temperature) {
+export async function saveSensorData(field_id, humidity, soil_moisture, temperature, wind_speed) {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/sensors/data`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field_id, humidity, soil_moisture, temperature }),
+      body: JSON.stringify({ field_id, humidity, soil_moisture, temperature, wind_speed }),
     })
     return res.ok ? await res.json() : null
   } catch {
@@ -85,12 +85,12 @@ export async function fetchSensorData(field_id) {
 }
 
 // ── Рекомендация полива (Python :8002) ────────────────────────────────────────
-export async function fetchIrrigationRecommend(field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days = []) {
+export async function fetchIrrigationRecommend(field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days = [], wind_speed) {
   try {
     const res = await fetch(`${PY_URL}/recommend/irrigation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days }),
+      body: JSON.stringify({ field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days, wind_speed }),
     })
     if (!res.ok) throw new Error()
     return await res.json()
