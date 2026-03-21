@@ -319,8 +319,17 @@ export default function FieldDetail() {
 
   if (fieldsLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
-        Загрузка...
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[48, 300, 160].map((h, i) => (
+            <div key={i} style={{
+              height: h, borderRadius: 'var(--radius-card)',
+              background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-accent-light) 50%, var(--color-border) 75%)',
+              backgroundSize: '400% 100%',
+              animation: 'shimmer 1.4s infinite',
+            }} />
+          ))}
+        </div>
       </div>
     )
   }
@@ -416,8 +425,16 @@ export default function FieldDetail() {
         {showAlert && <AnomalyAlert message={sensorResult.irrigation?.message} anomalies={sensorResult.irrigation?.anomalies} />}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
-            Загрузка прогноза...
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease' }}>
+            {[260, 140, 180].map((h, i) => (
+              <div key={i} style={{
+                height: h, borderRadius: 'var(--radius-card)',
+                background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-accent-light) 50%, var(--color-border) 75%)',
+                backgroundSize: '400% 100%',
+                animation: 'shimmer 1.4s infinite',
+                opacity: 1 - i * 0.15,
+              }} />
+            ))}
           </div>
         ) : (
           <>
@@ -436,8 +453,20 @@ export default function FieldDetail() {
 
                 {/* Sensor quick stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <StatCard icon={<IconDroplet size={18} color="#3b82f6" />} label="Влажность почвы" value="—" hint="Введите данные" bg="rgba(59,130,246,0.08)" color="#3b82f6" />
-                  <StatCard icon={<IconThermometer size={18} color="#f97316" />} label="Темп. воздуха" value="—" hint="Введите данные" bg="rgba(249,115,22,0.08)" color="#f97316" />
+                  <StatCard
+                    icon={<IconDroplet size={18} color="#3b82f6" />}
+                    label="Влажность почвы"
+                    value={sensorResult?.soil_moisture != null ? `${sensorResult.soil_moisture}%` : '—'}
+                    hint={sensorResult?.soil_moisture != null ? null : 'Введите данные'}
+                    bg="rgba(59,130,246,0.08)" color="#3b82f6"
+                  />
+                  <StatCard
+                    icon={<IconThermometer size={18} color="#f97316" />}
+                    label="Темп. воздуха"
+                    value={sensorResult?.air_temperature != null ? `${sensorResult.air_temperature}°C` : '—'}
+                    hint={sensorResult?.air_temperature != null ? null : 'Введите данные'}
+                    bg="rgba(249,115,22,0.08)" color="#f97316"
+                  />
                 </div>
 
                 {/* Sensor form */}

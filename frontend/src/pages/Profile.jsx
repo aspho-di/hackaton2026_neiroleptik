@@ -113,7 +113,7 @@ export default function Profile() {
 
   function handleAvatarUpload(dataUrl) {
     const updated = { ...user, avatar: dataUrl }
-    setUser(updated)
+    try { setUser(updated) } catch {}
     setUserState(updated)
     window.dispatchEvent(new Event('avatar-updated'))
   }

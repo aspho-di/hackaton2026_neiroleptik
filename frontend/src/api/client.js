@@ -208,6 +208,7 @@ export async function fetchCurrentWeather(lat = 46.85, lon = 40.31) {
     const res = await fetch(url)
     if (!res.ok) throw new Error()
     const data = await res.json()
+    if (!data?.daily?.temperature_2m_max?.length) throw new Error('no daily data')
     return {
       temp_max:              data.daily.temperature_2m_max[0],
       temp_min:              data.daily.temperature_2m_min[0],

@@ -99,7 +99,7 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
       ) ?? getMockResult(form)
 
       setResult(irrigationData)
-      onResult?.({ irrigation: irrigationData })
+      onResult?.({ irrigation: irrigationData, soil_moisture, air_temperature })
       showToast('Данные датчика сохранены')
 
       if (irrigationData?.irrigate === true) {

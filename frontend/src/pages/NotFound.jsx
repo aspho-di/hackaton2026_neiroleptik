@@ -81,7 +81,7 @@ export default function NotFound() {
 
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             style={{
               background: '#1a4d2e',
               color: '#fff',

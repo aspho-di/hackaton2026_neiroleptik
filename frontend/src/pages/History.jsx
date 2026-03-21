@@ -30,6 +30,22 @@ const card = {
   marginBottom: '20px',
 }
 
+function SummaryCard({ label, value, sub, color, bg }) {
+  return (
+    <div style={{
+      background: bg || 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: 'var(--radius-card)',
+      boxShadow: 'var(--shadow-card)',
+      padding: '16px 18px',
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: color || 'var(--color-text)', lineHeight: 1, marginBottom: 3 }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{sub}</div>}
+    </div>
+  )
+}
+
 function getRating(y) {
   if (y >= 40) return { label: 'Отличный', color: '#16a34a' }
   if (y >= 33) return { label: 'Хороший',  color: '#4caf50' }
@@ -85,6 +101,12 @@ export default function History() {
   [])
   const best  = useMemo(() => HISTORY_DATA.reduce((a, b) => a.yield_ctha > b.yield_ctha ? a : b), [])
   const worst = useMemo(() => HISTORY_DATA.reduce((a, b) => a.yield_ctha < b.yield_ctha ? a : b), [])
+  const trend = useMemo(() => {
+    const n = HISTORY_DATA.length
+    const first3 = HISTORY_DATA.slice(0, 3).reduce((s, d) => s + d.yield_ctha, 0) / 3
+    const last3  = HISTORY_DATA.slice(n - 3).reduce((s, d) => s + d.yield_ctha, 0) / 3
+    return +(last3 - first3).toFixed(1)
+  }, [])
 
   const analysis = selectedYear ? HISTORY_DATA.find(d => d.year === selectedYear) : null
 
@@ -117,6 +139,36 @@ export default function History() {
             <IconDownload size={15} color="currentColor" />
             Скачать CSV
           </button>
+        </div>
+
+        {/* Сводные карточки */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <SummaryCard
+            label="Средняя урожайность"
+            value={`${avgYield} ц/га`}
+            sub="за 2016–2025"
+            color="var(--color-normal)"
+          />
+          <SummaryCard
+            label={`Рекорд ${best.year}`}
+            value={`${best.yield_ctha} ц/га`}
+            sub={`${best.precip_mm} мм осадков`}
+            color="#16a34a"
+            bg="rgba(22,163,74,0.05)"
+          />
+          <SummaryCard
+            label={`Минимум ${worst.year}`}
+            value={`${worst.yield_ctha} ц/га`}
+            sub={`${worst.hot_days} жарких дней`}
+            color="var(--color-anomaly)"
+            bg="rgba(239,68,68,0.04)"
+          />
+          <SummaryCard
+            label="Тренд"
+            value={`${trend > 0 ? '+' : ''}${trend} ц/га`}
+            sub="разница: посл. 3 vs первые 3 года"
+            color={trend >= 0 ? 'var(--color-normal)' : 'var(--color-anomaly)'}
+          />
         </div>
 
         {/* Блок 1 — Урожайность */}
