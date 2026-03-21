@@ -6,6 +6,10 @@ import { useFields } from '../hooks/useFields'
 import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
 
+function getCompletedRecs() {
+  return Number(localStorage.getItem('completed_recommendations') || 0)
+}
+
 function Avatar({ name, size = 80 }) {
   const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
   return (
@@ -72,7 +76,7 @@ function StatCard({ icon, value, label, valueColor }) {
 export default function Profile() {
   const navigate = useNavigate()
   const user = getUser()
-  const { fields: allFields } = useFields()
+  const { fields } = useFields()
 
   // Данные пользователя из localStorage (заполненные при регистрации/входе)
   const name         = user?.name         || 'Агроном'
@@ -81,7 +85,10 @@ export default function Profile() {
   const district     = user?.district     || '—'
   const email        = user?.email        || '—'
   const phone        = user?.phone        || '—'
-  const stats        = user?.stats        || { total_fields: 5, active_anomalies: 1, completed_recommendations: 0 }
+
+  const totalFields        = fields.length
+  const activeAnomalies    = fields.filter(f => f.status === 'anomaly').length
+  const completedRecs      = getCompletedRecs()
 
   function handleLogout() {
     removeUser()
@@ -145,9 +152,9 @@ export default function Profile() {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <StatCard icon={<WheatEmoji size={24} />}         value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
-          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={stats.active_anomalies}           label="Активных аномалий"      valueColor="var(--color-anomaly)" />
-          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={stats.completed_recommendations}  label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
+          <StatCard icon={<WheatEmoji size={24} />}                                          value={totalFields}     label="Полей всего"            valueColor="var(--color-text)" />
+          <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={activeAnomalies} label="Активных аномалий"      valueColor="var(--color-anomaly)" />
+          <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={completedRecs}   label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
         </div>
 
         {/* Contact & info card */}
@@ -183,7 +190,7 @@ export default function Profile() {
             <IconMap size={16} color="var(--color-text-muted)" />
             <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Закреплённые поля</h2>
           </div>
-          {allFields.map((field, i) => (
+          {fields.map((field, i) => (
             <div
               key={field.field_id}
               onClick={() => navigate(`/field/${field.field_id}`)}
@@ -192,7 +199,7 @@ export default function Profile() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '13px 20px',
-                borderBottom: i < allFields.length - 1 ? '1px solid var(--color-border)' : 'none',
+                borderBottom: i < fields.length - 1 ? '1px solid var(--color-border)' : 'none',
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}

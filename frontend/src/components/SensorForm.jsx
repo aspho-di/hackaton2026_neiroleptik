@@ -99,6 +99,11 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
 
       setResult(irrigationData)
       onResult?.({ irrigation: irrigationData })
+
+      if (irrigationData?.irrigate === true) {
+        const prev = Number(localStorage.getItem('completed_recommendations') || 0)
+        localStorage.setItem('completed_recommendations', String(prev + 1))
+      }
     } catch {
       setError('Не удалось выполнить расчёт. Попробуйте снова.')
     } finally {
