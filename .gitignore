@@ -1,4 +1,3 @@
-
 # Python
 __pycache__/
 *.py[cod]
@@ -44,4 +43,3 @@ Thumbs.db
 
 .claude/
 CLAUDE.md
->>>>>>> origin/Ai_2
