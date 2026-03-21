@@ -279,14 +279,23 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
             </div>
           )}
 
+          {(() => {
+            const cardBg     = isAnomaly ? '#fef2f2' : result.irrigate ? '#fffbeb' : '#f0fdf4'
+            const cardBorder = isAnomaly ? '#fecaca' : result.irrigate ? '#fde68a' : '#bbf7d0'
+            const cardAccent = isAnomaly ? 'var(--color-anomaly)' : result.irrigate ? 'var(--color-warning)' : 'var(--color-normal)'
+            const cardLabel  = isAnomaly ? '⚠ Аномалия' : result.irrigate ? '💧 Требуется полив' : '✓ Полив не нужен'
+            return (
           <div style={{
-            background: 'var(--color-accent-light)',
-            border: '1px solid var(--color-border)',
+            background: cardBg,
+            border: `1px solid ${cardBorder}`,
+            borderLeft: `4px solid ${cardAccent}`,
             borderRadius: '10px',
             padding: '16px',
           }}>
-            <div style={{ fontWeight: 600, marginBottom: '12px', color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif', fontSize: '14px' }}>
-              Рекомендация по поливу
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '12px' }}>
+              <div style={{ fontWeight: 700, color: cardAccent, fontFamily: 'Montserrat, sans-serif', fontSize: '14px' }}>
+                {cardLabel}
+              </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
               <Stat label="Нужен полив" value={
@@ -320,6 +329,8 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
               </div>
             )}
           </div>
+            )
+          })()}
         </div>
       )}
     </div>
