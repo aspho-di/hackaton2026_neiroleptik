@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, ReferenceLine,
   Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { getMockForecastForField, MOCK_FIELDS } from '../mockData'
+import { getMockForecastForField } from '../mockData'
 import { fetchForecast, fetchCurrentWeather, deleteField } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
@@ -20,9 +20,9 @@ const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const ET0  = 4.0
 
 const STATUS_GRADIENT = {
-  normal:  'linear-gradient(135deg, #f0faf0 0%, #ffffff 60%)',
-  warning: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 60%)',
-  anomaly: 'linear-gradient(135deg, #fff1f0 0%, #ffffff 60%)',
+  normal:  'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, transparent 60%)',
+  warning: 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, transparent 60%)',
+  anomaly: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 60%)',
 }
 
 // ── Water balance ─────────────────────────────────────────────────────────────
@@ -30,8 +30,8 @@ function BalanceTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const v = payload[0].value
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}>
-      <div style={{ fontWeight: 600, marginBottom: 2, color: '#1c2b1e' }}>{label}</div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 13 }}>
+      <div style={{ fontWeight: 600, marginBottom: 2, color: 'var(--color-text)' }}>{label}</div>
       <div style={{ color: v >= 0 ? '#16a34a' : '#dc2626' }}>{v > 0 ? '+' : ''}{v} мм</div>
     </div>
   )
@@ -49,7 +49,7 @@ function WaterBalanceChart({ precip }) {
 
   return (
     <div style={{
-      background: avg >= 0 ? 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 60%)' : 'linear-gradient(135deg, #fff1f0 0%, #ffffff 60%)',
+      background: avg >= 0 ? 'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, transparent 60%)' : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, transparent 60%)',
       border: '1px solid var(--color-border)',
       borderRadius: 'var(--radius-card)',
       boxShadow: 'var(--shadow-card)',
@@ -138,7 +138,7 @@ function YieldCard({ forecast, status }) {
           <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2, marginBottom: 10 }}>
             от {yield_min} до {yield_max} ц/га
           </div>
-          <div style={{ position: 'relative', height: 8, background: '#e5e7eb', borderRadius: 4, marginBottom: 12 }}>
+          <div style={{ position: 'relative', height: 8, background: 'var(--color-border)', borderRadius: 4, marginBottom: 12 }}>
             <div style={{
               position: 'absolute', left: `${minPct}%`, width: `${maxPct - minPct}%`,
               height: '100%', background: barColor, borderRadius: 4, opacity: 0.55,
@@ -147,7 +147,7 @@ function YieldCard({ forecast, status }) {
               position: 'absolute', left: `${dotPct}%`, top: '50%',
               transform: 'translate(-50%, -50%)',
               width: 14, height: 14, borderRadius: '50%',
-              background: barColor, border: '2px solid #fff',
+              background: barColor, border: '2px solid var(--color-surface)',
               boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
             }} />
           </div>
@@ -273,13 +273,7 @@ export default function FieldDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteError,     setDeleteError]     = useState('')
 
-  const isMockField = MOCK_FIELDS.some(f => f.field_id === fieldId)
-
   async function handleDelete() {
-    if (isMockField) {
-      setDeleteError('Демонстрационные поля нельзя удалить')
-      return
-    }
     await deleteField(field.field_id)
     const saved   = JSON.parse(localStorage.getItem('fields') || '[]')
     const updated = saved.filter(f => f.field_id !== field.field_id)
@@ -378,7 +372,7 @@ export default function FieldDetail() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxWidth: 440, width: '100%', padding: '28px 28px 24px' }}
+              style={{ background: 'var(--color-surface)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxWidth: 440, width: '100%', padding: '28px 28px 24px' }}
             >
               <h2 style={{ fontSize: 17, color: 'var(--color-text)', marginBottom: 12 }}>Удалить участок?</h2>
               <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: 20 }}>
@@ -431,8 +425,8 @@ export default function FieldDetail() {
 
                 {/* Sensor quick stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <StatCard icon={<IconDroplet size={18} color="#1d4ed8" />} label="Влажность почвы" value="—" hint="Введите данные" bg="#eff6ff" color="#1d4ed8" />
-                  <StatCard icon={<IconThermometer size={18} color="#c2410c" />} label="Темп. воздуха" value="—" hint="Введите данные" bg="#fff7ed" color="#c2410c" />
+                  <StatCard icon={<IconDroplet size={18} color="#3b82f6" />} label="Влажность почвы" value="—" hint="Введите данные" bg="rgba(59,130,246,0.08)" color="#3b82f6" />
+                  <StatCard icon={<IconThermometer size={18} color="#f97316" />} label="Темп. воздуха" value="—" hint="Введите данные" bg="rgba(249,115,22,0.08)" color="#f97316" />
                 </div>
 
                 {/* Sensor form */}

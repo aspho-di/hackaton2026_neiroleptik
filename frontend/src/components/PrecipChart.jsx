@@ -8,13 +8,13 @@ function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: '#fff',
-      border: '1px solid #e5e7eb',
+      background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
       borderRadius: '8px',
       padding: '8px 12px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       fontSize: '13px',
-      color: '#1c2b1e',
+      color: 'var(--color-text)',
     }}>
       <div style={{ fontWeight: 600, marginBottom: '2px' }}>{label}</div>
       <div style={{ color: '#2563eb' }}>{payload[0].value} мм</div>
@@ -71,9 +71,9 @@ export default function PrecipChart({ data, height = 180 }) {
 
 function Chip({ label, value, color }) {
   return (
-    <div style={{ fontSize: '12px', color: '#6b7c6e' }}>
+    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
       {label}:{' '}
-      <span style={{ fontWeight: 600, color: color || '#1c2b1e' }}>{value}</span>
+      <span style={{ fontWeight: 600, color: color || 'var(--color-text)' }}>{value}</span>
     </div>
   )
 }

@@ -161,7 +161,7 @@ export default function Alerts() {
                       onClick={() => markRead(alert.id)}
                       style={{
                         padding: '5px 12px', border: '1px solid var(--color-border)',
-                        borderRadius: 6, background: '#fff', fontSize: 12,
+                        borderRadius: 6, background: 'var(--color-surface)', fontSize: 12,
                         cursor: 'pointer', color: 'var(--color-text-muted)',
                         flexShrink: 0, whiteSpace: 'nowrap',
                         transition: 'border-color 0.15s',
