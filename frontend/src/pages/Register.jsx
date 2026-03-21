@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { setUser } from '../auth'
 import { DISTRICTS } from '../constants/districts'
-import { IconWheat } from '../components/icons/Icons'
+import WheatEmoji from '../components/icons/WheatEmoji'
 
 const inputStyle = {
   width: '100%',
@@ -66,7 +66,7 @@ export default function Register() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-            <IconWheat size={40} color="var(--color-primary)" />
+            <WheatEmoji size={48} />
           </div>
           <div style={{
             fontFamily: 'Montserrat, sans-serif',

@@ -1,6 +1,54 @@
 import { useState, useEffect } from 'react'
-import { DISTRICTS, CROPS } from '../constants/districts'
-import { IconWheat } from './icons/Icons'
+import { CROPS } from '../constants/districts'
+import { fetchDistricts, createField } from '../api/client'
+import WheatEmoji from './icons/WheatEmoji'
+
+const DISTRICT_COORDS = {
+  'Азовский':              { lat: 47.11, lon: 39.42 },
+  'Аксайский':             { lat: 47.31, lon: 39.87 },
+  'Багаевский':            { lat: 47.38, lon: 40.44 },
+  'Белокалитвинский':      { lat: 48.17, lon: 40.77 },
+  'Боковский':             { lat: 49.27, lon: 41.79 },
+  'Верхнедонской':         { lat: 49.62, lon: 40.99 },
+  'Веселовский':           { lat: 47.25, lon: 41.22 },
+  'Волгодонской':          { lat: 47.52, lon: 42.17 },
+  'Дубовский':             { lat: 47.42, lon: 42.77 },
+  'Егорлыкский':           { lat: 46.57, lon: 40.70 },
+  'Заветинский':           { lat: 47.12, lon: 43.88 },
+  'Зерноградский':         { lat: 46.85, lon: 40.31 },
+  'Зимовниковский':        { lat: 47.14, lon: 42.99 },
+  'Кагальницкий':          { lat: 46.88, lon: 40.19 },
+  'Каменский':             { lat: 48.45, lon: 40.27 },
+  'Кашарский':             { lat: 49.10, lon: 40.43 },
+  'Константиновский':      { lat: 47.58, lon: 41.09 },
+  'Красносулинский':       { lat: 47.89, lon: 40.06 },
+  'Куйбышевский':          { lat: 48.56, lon: 39.36 },
+  'Мартыновский':          { lat: 47.52, lon: 41.62 },
+  'Матвеево-Курганский':   { lat: 47.56, lon: 38.85 },
+  'Миллеровский':          { lat: 48.92, lon: 40.41 },
+  'Милютинский':           { lat: 48.64, lon: 42.18 },
+  'Морозовский':           { lat: 48.35, lon: 41.83 },
+  'Мясниковский':          { lat: 47.26, lon: 39.80 },
+  'Неклиновский':          { lat: 47.17, lon: 38.65 },
+  'Новочеркасский':        { lat: 47.42, lon: 40.10 },
+  'Обливский':             { lat: 48.54, lon: 42.52 },
+  'Октябрьский':           { lat: 47.39, lon: 41.78 },
+  'Орловский':             { lat: 46.86, lon: 41.84 },
+  'Песчанокопский':        { lat: 46.19, lon: 41.07 },
+  'Пролетарский':          { lat: 46.70, lon: 41.74 },
+  'Ремонтненский':         { lat: 46.56, lon: 43.64 },
+  'Родионово-Несветайский':{ lat: 47.51, lon: 39.54 },
+  'Ростовский':            { lat: 47.24, lon: 39.70 },
+  'Сальский':              { lat: 46.48, lon: 41.54 },
+  'Семикаракорский':       { lat: 47.52, lon: 40.80 },
+  'Советский':             { lat: 50.00, lon: 43.40 },
+  'Тарасовский':           { lat: 49.04, lon: 40.82 },
+  'Тацинский':             { lat: 48.21, lon: 41.27 },
+  'Усть-Донецкий':         { lat: 47.63, lon: 40.87 },
+  'Целинский':             { lat: 46.54, lon: 41.04 },
+  'Чертковский':           { lat: 49.35, lon: 40.12 },
+  'Шолоховский':           { lat: 49.06, lon: 41.57 },
+}
 
 const FIELDS_KEY = 'fields'
 
@@ -67,6 +115,8 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
   })
   const [errors, setErrors] = useState({})
   const [globalError, setGlobalError] = useState('')
+  const [districts, setDistricts] = useState([])
+  const [loadingDistricts, setLoadingDistricts] = useState(true)
 
   // Close on Escape
   useEffect(() => {
@@ -74,6 +124,14 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // Load districts from API (with fallback)
+  useEffect(() => {
+    fetchDistricts().then(data => {
+      setDistricts(data)
+      setLoadingDistricts(false)
+    })
+  }, [])
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -89,7 +147,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
     return e
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     const e2 = validate()
     if (Object.keys(e2).length) { setErrors(e2); return }
@@ -101,19 +159,43 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
       return
     }
 
+    const districtKey = Object.keys(DISTRICT_COORDS).find(k =>
+      form.district.startsWith(k) || k.startsWith(form.district.split(' ')[0])
+    )
+    const coords = DISTRICT_COORDS[districtKey] ?? { lat: 46.85, lon: 40.31 }
+
     const newField = {
       field_id: fieldId,
-      name: `Участок ${fieldId} — ${form.title.trim()}`,
-      crop: form.crop,
-      status: 'normal',
-      temp: form.temp !== '' ? Number(form.temp) : 20,
-      precip: form.precip !== '' ? Number(form.precip) : 5,
+      name:     `Участок ${fieldId} — ${form.title.trim()}`,
+      crop:     form.crop,
+      status:   'normal',
+      temp:     form.temp   !== '' ? Number(form.temp)   : 20,
+      precip:   form.precip !== '' ? Number(form.precip) : 5,
       district: form.district,
-      area: form.area !== '' ? Number(form.area) : null,
+      area:     form.area   !== '' ? Number(form.area)   : null,
+      latitude:  coords.lat,
+      longitude: coords.lon,
     }
 
-    saveField(newField)
-    onAdd(newField)
+    // Попытка сохранить на бэкенде
+    const payload = {
+      name:           newField.name,
+      crop_type:      form.crop,
+      area_hectares:  newField.area ?? 100,
+      latitude:       coords.lat,
+      longitude:      coords.lon,
+      user_id:        1,
+    }
+    const result = await createField(payload)
+
+    if (result) {
+      // Бэкенд сохранил — адаптируем ответ к фронтовому формату
+      onAdd({ ...newField, field_id: result.id ?? fieldId })
+    } else {
+      // Fallback — localStorage
+      saveField(newField)
+      onAdd(newField)
+    }
     onClose()
   }
 
@@ -148,7 +230,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <IconWheat size={22} color="var(--color-accent)" />
+            <WheatEmoji size={22} />
             <h2 style={{ fontSize: '18px', color: 'var(--color-text)' }}>Новый участок</h2>
           </div>
           <button
@@ -203,9 +285,20 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
               </Field>
 
               <Field label="Район">
-                <select style={inputStyle} {...focusHandlers} name="district" value={form.district} onChange={handleChange}>
-                  <option value="">Выберите район</option>
-                  {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                <select
+                  style={{ ...inputStyle, color: loadingDistricts ? 'var(--color-text-muted)' : 'var(--color-text)' }}
+                  {...focusHandlers}
+                  name="district"
+                  value={form.district}
+                  onChange={handleChange}
+                  disabled={loadingDistricts}
+                  required
+                >
+                  <option value="">{loadingDistricts ? 'Загрузка...' : 'Выберите район'}</option>
+                  {districts.map(d => {
+                    const name = typeof d === 'string' ? d : d.name
+                    return <option key={name} value={name}>{name}</option>
+                  })}
                 </select>
               </Field>
             </div>

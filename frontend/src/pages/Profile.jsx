@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
-import { MOCK_FIELDS } from '../mockData'
 import { getUser, removeUser } from '../auth'
-import { IconWheat, IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
+import { useFields } from '../hooks/useFields'
+import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap } from '../components/icons/Icons'
+import WheatEmoji from '../components/icons/WheatEmoji'
 
 function Avatar({ name, size = 80 }) {
   const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -71,6 +72,7 @@ function StatCard({ icon, value, label, valueColor }) {
 export default function Profile() {
   const navigate = useNavigate()
   const user = getUser()
+  const { fields: allFields } = useFields()
 
   // Данные пользователя из localStorage (заполненные при регистрации/входе)
   const name         = user?.name         || 'Агроном'
@@ -87,7 +89,7 @@ export default function Profile() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+    <>
       <Navbar />
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 48px' }}>
@@ -143,7 +145,7 @@ export default function Profile() {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <StatCard icon={<IconWheat size={24} color="var(--color-text-muted)" />}         value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
+          <StatCard icon={<WheatEmoji size={24} />}         value={stats.total_fields}               label="Полей всего"            valueColor="var(--color-text)" />
           <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={stats.active_anomalies}           label="Активных аномалий"      valueColor="var(--color-anomaly)" />
           <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={stats.completed_recommendations}  label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
         </div>
@@ -181,7 +183,7 @@ export default function Profile() {
             <IconMap size={16} color="var(--color-text-muted)" />
             <h2 style={{ fontSize: '15px', color: 'var(--color-text)' }}>Закреплённые поля</h2>
           </div>
-          {MOCK_FIELDS.map((field, i) => (
+          {allFields.map((field, i) => (
             <div
               key={field.field_id}
               onClick={() => navigate(`/field/${field.field_id}`)}
@@ -190,7 +192,7 @@ export default function Profile() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '13px 20px',
-                borderBottom: i < MOCK_FIELDS.length - 1 ? '1px solid var(--color-border)' : 'none',
+                borderBottom: i < allFields.length - 1 ? '1px solid var(--color-border)' : 'none',
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}
@@ -212,6 +214,6 @@ export default function Profile() {
         </div>
 
       </div>
-    </div>
+    </>
   )
 }
