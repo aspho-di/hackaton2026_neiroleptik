@@ -227,7 +227,7 @@ export default function Compare() {
     <>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
+        <h1 className="page-title">
           Сравнение участков
         </h1>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 24 }}>

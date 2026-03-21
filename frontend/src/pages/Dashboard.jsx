@@ -3,6 +3,7 @@ import FieldList from '../components/FieldList'
 import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
 import { getUser } from '../auth'
 import WheatEmoji from '../components/icons/WheatEmoji'
+import Toast, { showToast } from '../components/Toast'
 
 const STAT_CARDS = [
   { key: 'normal',  dot: '#4caf50', label: 'В норме',           filter: f => f.status === 'normal'  },
@@ -49,6 +50,7 @@ export default function Dashboard() {
 
   function handleAdd(newField) {
     setSavedFields(prev => [...prev, newField])
+    showToast(`Участок «${newField.name.split('—')[0].trim()}» добавлен`)
   }
 
   return (
@@ -57,7 +59,7 @@ export default function Dashboard() {
 
           {/* Greeting */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontSize: '22px', color: 'var(--color-text)', marginBottom: '4px' }}>
+            <h1 className="page-title">
               Добрый день, {firstName}!
             </h1>
             <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
@@ -168,6 +170,7 @@ export default function Dashboard() {
           onAdd={handleAdd}
         />
       )}
+      <Toast />
     </>
   )
 }

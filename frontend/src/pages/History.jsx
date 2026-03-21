@@ -76,7 +76,7 @@ export default function History() {
     <>
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
+        <h1 className="page-title">
           Исторический анализ
         </h1>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 28 }}>
@@ -284,7 +284,7 @@ export default function History() {
           )}
 
           {predictions.length > 0 && (
-            <div style={{ overflowX: 'overlay' }}>
+            <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>

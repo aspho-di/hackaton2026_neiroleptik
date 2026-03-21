@@ -55,10 +55,20 @@ function NavIconBtn({ to, icon, label, badge }) {
         textDecoration: 'none',
         flexShrink: 0,
       })}
+      className={({ isActive }) => isActive ? 'nav-icon-active' : ''}
       onMouseEnter={e => { if (!e.currentTarget.style.background.includes('0.18')) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
       onMouseLeave={e => { if (!e.currentTarget.style.background.includes('0.18')) e.currentTarget.style.background = 'transparent' }}
     >
       {icon}
+      <span className="nav-active-dot" style={{
+        position: 'absolute', bottom: 4, left: '50%',
+        transform: 'translateX(-50%)',
+        width: 4, height: 4, borderRadius: '50%',
+        background: '#fff',
+        opacity: 0,
+        transition: 'opacity 0.2s',
+        pointerEvents: 'none',
+      }} />
       {badge > 0 && (
         <span style={{
           position: 'absolute', top: 4, right: 4,
@@ -106,7 +116,7 @@ export default function Navbar() {
       zIndex: 100,
       boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
     }}>
-      <div style={{
+      <div className="nav-inner" style={{
         maxWidth: '1400px',
         margin: '0 auto',
         padding: '0 24px',
@@ -118,7 +128,7 @@ export default function Navbar() {
         {/* Logo */}
         <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
           <WheatEmoji size={28} />
-          <span style={{
+          <span className="nav-brand-label" style={{
             color: '#fff', fontFamily: 'Montserrat, sans-serif',
             fontWeight: 700, fontSize: '16px', letterSpacing: '0.01em',
           }}>
@@ -127,7 +137,7 @@ export default function Navbar() {
         </NavLink>
 
         {/* Nav icons + Avatar (right group) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+        <div className="nav-icon-gap" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
           <NavIconBtn to="/history"    icon={<IconBarChart  size={19} color="rgba(255,255,255,0.85)" />} label="История урожайности" />
           <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
           <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />

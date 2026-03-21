@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { loadSavedFields } from '../components/AddFieldModal'
 import { CROP_LABEL } from '../constants/districts'
+import Toast, { showToast } from '../components/Toast'
+import { IconDroplets } from '../components/icons/Icons'
 
 const STATUS_PRIORITY = { anomaly: 1, warning: 2, normal: 3 }
 const STATUS_LABELS   = { anomaly: 'Аномалия', warning: 'Внимание', normal: 'Норма' }
@@ -49,21 +51,50 @@ export default function IrrigationPlan() {
       }
     }
     setPlan({ fields: result, used: limit - remaining, remaining: Math.max(0, remaining) })
+    showToast('План полива распределён')
   }
 
   return (
     <>
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 24px 48px' }}>
 
-        <h1 style={{ fontSize: 22, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 4 }}>
+        <h1 className="page-title">
           Оптимизация полива
         </h1>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 28 }}>
           Распределение водного ресурса по участкам с учётом приоритетов
         </p>
 
+        {sorted.length === 0 && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            padding: '72px 24px', textAlign: 'center',
+            background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)',
+            animation: 'fadeIn 0.4s ease',
+          }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: '50%',
+              background: 'var(--color-accent-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <IconDroplets size={36} color="var(--color-accent)" />
+            </div>
+            <div style={{
+              fontSize: 18, fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+              color: 'var(--color-text)', marginBottom: 10,
+            }}>
+              Участки не найдены
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', maxWidth: 300, lineHeight: 1.7 }}>
+              Добавьте участки на главной странице, чтобы составить план полива
+            </p>
+          </div>
+        )}
+
         {/* Форма ввода */}
-        <div style={{ ...card, marginBottom: 20 }}>
+        {sorted.length > 0 && <div style={{ ...card, marginBottom: 20 }}>
           <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 16 }}>
             Параметры распределения
           </div>
@@ -140,10 +171,10 @@ export default function IrrigationPlan() {
               </tbody>
             </table>
           </div>
-        </div>
+        </div>}
 
         {/* Результат распределения */}
-        {plan && (
+        {sorted.length > 0 && plan && (
           <div style={{ ...card, animation: 'fadeIn 0.25s ease' }}>
             <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-text)', marginBottom: 6 }}>
               План распределения
@@ -197,6 +228,7 @@ export default function IrrigationPlan() {
         )}
 
       </div>
+      <Toast />
     </>
   )
 }

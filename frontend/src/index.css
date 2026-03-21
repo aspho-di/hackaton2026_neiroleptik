@@ -134,3 +134,37 @@ input, select, textarea {
   scrollbar-width: thin;
   scrollbar-color: #4caf50 transparent;
 }
+
+@keyframes shimmer {
+  from { opacity: 0.5; }
+  to   { opacity: 1; }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(32px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Gradient page heading */
+.page-title {
+  font-size: 22px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Active nav dot */
+.nav-icon-active .nav-active-dot {
+  opacity: 1 !important;
+}
+
+/* Mobile navbar */
+@media (max-width: 600px) {
+  .nav-brand-label { display: none; }
+  .nav-inner { padding: 0 12px !important; }
+  .nav-icon-gap { gap: 2px !important; }
+}

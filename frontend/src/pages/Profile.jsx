@@ -153,7 +153,7 @@ export default function Profile() {
         }}>
           <AvatarUpload user={user} size={80} onUpload={handleAvatarUpload} />
           <div style={{ flex: 1, minWidth: '180px' }}>
-            <h1 style={{ fontSize: '20px', color: 'var(--color-text)', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: '20px', marginBottom: '4px', background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               {name}
             </h1>
             <div style={{ fontSize: '14px', color: 'var(--color-accent)', fontWeight: 600, marginBottom: '4px' }}>
