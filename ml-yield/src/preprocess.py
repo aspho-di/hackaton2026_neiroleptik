@@ -74,10 +74,10 @@ def prepare_features(df: pd.DataFrame):
     return X, y
 
 
-if __name__ == "__main__":
-    df_raw = pd.read_csv("../data/raw/weather_historical.csv")
-    df_agg = aggregate_season(df_raw)
-    df_full = add_yield_data(df_agg)
-    df_full.to_csv("../data/processed/dataset.csv", index=False)
-    print(f"Датасет готов: {len(df_full)} строк")
-    print(df_full.head())
+    if __name__ == "__main__":
+        df_raw = pd.read_csv("../data/raw/weather_historical.csv")
+        df_agg = aggregate_season(df_raw)
+        df_full = add_yield_data(df_agg, yield_csv="../data/raw/yield_rostov.csv")
+        df_full.to_csv("../data/processed/dataset.csv", index=False)
+        print(f"Датасет готов: {len(df_full)} строк")
+        print(df_full.head())
