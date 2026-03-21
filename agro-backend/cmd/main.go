@@ -39,7 +39,6 @@ func main() {
 	_ = godotenv.Load()
 
 	cfg := configs.LoadConfig()
-	log.Printf("Redis cfg.Redis.Password = %q", cfg.Redis.Password)
 
 	db, err := database.NewPostgres(database.DefaultPostgresConfig(cfg.GetDatabaseDSN()))
 	if err != nil {

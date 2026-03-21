@@ -9,9 +9,9 @@ import { CROPS, CROP_LABEL } from '../constants/districts'
 import { IconSearch, IconX } from '../components/icons/Icons'
 
 const DATA_SOURCES = [
-  { key: 'go',      label: 'Go API',       url: 'http://localhost:8080/api/v1/fields', short: ':8080' },
-  { key: 'py',      label: 'ML-сервис',    url: 'http://localhost:8002/health',        short: ':8002' },
-  { key: 'weather', label: 'Open-Meteo',   url: 'https://api.open-meteo.com/v1/forecast?latitude=46.85&longitude=40.31&daily=precipitation_sum&forecast_days=1&timezone=Europe%2FMoscow', short: 'API' },
+    { key: 'go',      label: 'Go API',     url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/fields`, short: ':8080' },
+    { key: 'py',      label: 'ML-сервис',  url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/ml/health`, short: ':8002' },
+    { key: 'weather', label: 'Open-Meteo', url: 'https://api.open-meteo.com/v1/forecast?latitude=46.85&longitude=40.31&daily=precipitation_sum&forecast_days=1&timezone=Europe%2FMoscow', short: 'API' },
 ]
 
 function DataSourcesWidget() {
