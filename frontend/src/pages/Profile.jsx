@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
 import StatusBadge from '../components/StatusBadge'
 import { getUser, removeUser } from '../auth'
 import { useFields } from '../hooks/useFields'
@@ -97,8 +96,6 @@ export default function Profile() {
 
   return (
     <>
-      <Navbar />
-
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 48px' }}>
 
         {/* Header card */}

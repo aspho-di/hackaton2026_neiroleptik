@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
 import FieldList from '../components/FieldList'
 import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
-import { MOCK_FIELDS } from '../mockData'
 import { getUser } from '../auth'
+import WheatEmoji from '../components/icons/WheatEmoji'
 
 const STAT_CARDS = [
   { key: 'normal',  dot: '#4caf50', label: 'В норме',           filter: f => f.status === 'normal'  },
@@ -46,7 +45,7 @@ export default function Dashboard() {
   const [savedFields, setSavedFields] = useState(() => loadSavedFields())
   const [showModal, setShowModal] = useState(false)
 
-  const allFields = [...MOCK_FIELDS, ...savedFields]
+  const allFields = savedFields
 
   function handleAdd(newField) {
     setSavedFields(prev => [...prev, newField])
@@ -54,8 +53,6 @@ export default function Dashboard() {
 
   return (
     <>
-      <Navbar />
-
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 0' }}>
 
           {/* Greeting */}
@@ -119,7 +116,49 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <FieldList fields={allFields} />
+          {allFields.length === 0 ? (
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              padding: '72px 24px', textAlign: 'center',
+              animation: 'fadeIn 0.4s ease',
+            }}>
+              <div style={{
+                width: 96, height: 96, borderRadius: '50%',
+                background: 'var(--color-accent-light)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 24,
+              }}>
+                <WheatEmoji size={52} />
+              </div>
+              <div style={{
+                fontSize: 22, fontFamily: 'Montserrat, sans-serif', fontWeight: 700,
+                background: 'linear-gradient(135deg, var(--color-accent), var(--color-primary))',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                marginBottom: 10,
+              }}>
+                Это могут быть ваши поля
+              </div>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', maxWidth: 300, lineHeight: 1.7, marginBottom: 32 }}>
+                Добавьте первый участок, чтобы начать отслеживать урожайность и получать рекомендации по поливу
+              </p>
+              <button
+                onClick={() => setShowModal(true)}
+                style={{
+                  background: 'var(--color-accent)', color: '#fff', border: 'none',
+                  borderRadius: 10, padding: '12px 32px',
+                  fontSize: 15, fontWeight: 600, fontFamily: 'Montserrat, sans-serif',
+                  cursor: 'pointer', transition: 'background 0.15s',
+                  boxShadow: '0 4px 14px rgba(76,175,80,0.35)',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-accent-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-accent)'}
+              >
+                + Добавить первый участок
+              </button>
+            </div>
+          ) : (
+            <FieldList fields={allFields} />
+          )}
         </div>
 
       {showModal && (

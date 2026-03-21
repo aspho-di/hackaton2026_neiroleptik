@@ -16,6 +16,29 @@
   --radius-card: 12px;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+
+  --scrollbar-track:    #f5f7f5;
+}
+
+html[data-theme="dark"] {
+  --color-primary:      #0d2b18;
+  --color-accent:       #4caf50;
+  --color-accent-hover: #388e3c;
+  --color-accent-light: #152a1a;
+  --color-bg:           #0b1610;
+  --color-surface:      #112117;
+  --color-text:         #d8edd9;
+  --color-text-muted:   #6b9970;
+  --color-border:       #1e3624;
+
+  --color-normal:       #4caf50;
+  --color-warning:      #f59e0b;
+  --color-anomaly:      #ef4444;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.5);
+
+  --scrollbar-track:    #0b1610;
 }
 
 *, *::before, *::after {
@@ -73,15 +96,12 @@ input, select, textarea {
 /* Скроллбар для webkit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
   width: 4px;
-  background: transparent;
 }
 
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-track-piece,
 ::-webkit-scrollbar-corner {
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -95,8 +115,17 @@ input, select, textarea {
 
 ::-webkit-scrollbar-button {
   display: none;
-  width: 0;
-  height: 0;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50%       { transform: rotate(1.5deg); }
 }
 
 /* Firefox */

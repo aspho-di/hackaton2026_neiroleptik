@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { CROPS } from '../constants/districts'
 import { fetchDistricts, createField } from '../api/client'
 import WheatEmoji from './icons/WheatEmoji'
+import { IconX } from './icons/Icons'
 
 const DISTRICT_COORDS = {
   'Азовский':              { lat: 47.11, lon: 39.42 },
@@ -223,7 +224,7 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
           width: '100%',
           maxWidth: '520px',
           maxHeight: '90vh',
-          overflowY: 'auto',
+          overflowY: 'overlay',
           padding: '28px 28px 24px',
         }}
       >
@@ -235,9 +236,11 @@ export default function AddFieldModal({ allFields, onClose, onAdd }) {
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, padding: '4px' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, padding: '4px', display: 'flex', alignItems: 'center', borderRadius: 6, transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
           >
-            ×
+            <IconX size={20} color="currentColor" />
           </button>
         </div>
 
