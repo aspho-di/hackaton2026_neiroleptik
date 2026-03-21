@@ -18,15 +18,14 @@ def load_model():
     return joblib.load(MODEL_PATH)
 
 
-def predict_from_forecast() -> dict:
+def predict_from_forecast(district: str = "rostov") -> dict:
     """
     Качает прогноз погоды и предсказывает урожайность.
-    Возвращает dict — бэкендер отдаёт это как JSON.
+    district — ключ района из DISTRICTS в fetch_weather.py
     """
     model = load_model()
 
-    # Берём прогноз на 7 дней
-    df_forecast = fetch_forecast_weather(days=7)
+    df_forecast = fetch_forecast_weather(days=7, district=district)
 
     # Считаем фичи вручную (без агрегации по году — прогноз короткий)
     features = {
