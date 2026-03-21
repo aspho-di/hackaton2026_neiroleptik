@@ -1,6 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getUser } from '../auth'
-import { IconWheat } from './icons/Icons'
+import WheatEmoji from './icons/WheatEmoji'
+import { IconBarChart, IconDroplets, IconBell, IconCompare } from './icons/Icons'
+import { MOCK_ALERTS } from '../mockData'
 
 function Avatar({ name, size = 36 }) {
   const initials = (name || 'AG')
@@ -14,22 +16,14 @@ function Avatar({ name, size = 36 }) {
     <div
       title={name}
       style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: 'var(--color-accent)',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: size * 0.36,
-        fontWeight: 700,
+        width: size, height: size, borderRadius: '50%',
+        background: 'var(--color-accent)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.36, fontWeight: 700,
         fontFamily: 'Montserrat, sans-serif',
-        flexShrink: 0,
-        cursor: 'pointer',
+        flexShrink: 0, cursor: 'pointer',
         border: '2px solid rgba(255,255,255,0.3)',
-        transition: 'opacity 0.15s',
-        userSelect: 'none',
+        transition: 'opacity 0.15s', userSelect: 'none',
       }}
       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -39,41 +33,88 @@ function Avatar({ name, size = 36 }) {
   )
 }
 
+function NavIconBtn({ to, icon, label, badge }) {
+  return (
+    <NavLink
+      to={to}
+      title={label}
+      style={({ isActive }) => ({
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative',
+        width: 36, height: 36, borderRadius: 8,
+        background: isActive ? 'rgba(255,255,255,0.18)' : 'transparent',
+        transition: 'background 0.15s',
+        textDecoration: 'none',
+        flexShrink: 0,
+      })}
+      onMouseEnter={e => { if (!e.currentTarget.style.background.includes('0.18')) e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
+      onMouseLeave={e => { if (!e.currentTarget.style.background.includes('0.18')) e.currentTarget.style.background = 'transparent' }}
+    >
+      {icon}
+      {badge > 0 && (
+        <span style={{
+          position: 'absolute', top: 4, right: 4,
+          minWidth: 16, height: 16, borderRadius: 8,
+          background: '#ef4444', color: '#fff',
+          fontSize: 9, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 3px',
+          border: '1.5px solid var(--color-primary)',
+        }}>
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </NavLink>
+  )
+}
+
 export default function Navbar() {
   const navigate = useNavigate()
-  const user = getUser()
-  const name = user?.name || ''
+  const user     = getUser()
+  const name     = user?.name || ''
+
+  const readIds     = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
+  const unreadCount = MOCK_ALERTS.filter(a => !readIds.includes(a.id)).length
 
   return (
     <nav style={{
       background: 'var(--color-primary)',
-      padding: '0 24px',
-      height: '56px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       position: 'sticky',
       top: 0,
       zIndex: 100,
       boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
     }}>
-      {/* Logo */}
-      <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-        <IconWheat size={22} color="#fff" />
-        <span style={{
-          color: '#fff',
-          fontFamily: 'Montserrat, sans-serif',
-          fontWeight: 700,
-          fontSize: '16px',
-          letterSpacing: '0.01em',
-        }}>
-          АгроАналитика
-        </span>
-      </NavLink>
+      <div style={{
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '0 24px',
+        height: '56px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        {/* Logo */}
+        <NavLink to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
+          <WheatEmoji size={28} />
+          <span style={{
+            color: '#fff', fontFamily: 'Montserrat, sans-serif',
+            fontWeight: 700, fontSize: '16px', letterSpacing: '0.01em',
+          }}>
+            АгроАналитика
+          </span>
+        </NavLink>
 
-      {/* Avatar → /profile */}
-      <div onClick={() => navigate('/profile')}>
-        <Avatar name={name} size={36} />
+        {/* Nav icons + Avatar (right group) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+          <NavIconBtn to="/history"    icon={<IconBarChart  size={19} color="rgba(255,255,255,0.85)" />} label="История урожайности" />
+          <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
+          <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />
+          <NavIconBtn to="/alerts"     icon={<IconBell      size={19} color="rgba(255,255,255,0.85)" />} label="Уведомления" badge={unreadCount} />
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 8px' }} />
+          <div onClick={() => navigate('/profile')} style={{ flexShrink: 0 }}>
+            <Avatar name={name} size={36} />
+          </div>
+        </div>
       </div>
     </nav>
   )

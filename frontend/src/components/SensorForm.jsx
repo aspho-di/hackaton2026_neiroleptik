@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { MOCK_FORECAST, MOCK_IRRIGATION } from '../mockData'
+import { MOCK_IRRIGATION } from '../mockData'
+import { validateSensorData, saveSensorData, fetchIrrigationRecommend } from '../api/client'
 import AnomalyAlert from './AnomalyAlert'
 import { IconCheck, IconX } from './icons/Icons'
-
-const API_FORECAST   = 'http://localhost:8001/predict/forecast'
-const API_IRRIGATION = 'http://localhost:8002/recommend/irrigation'
 
 const inputStyle = {
   width: '100%',
@@ -18,15 +16,56 @@ const inputStyle = {
   transition: 'border-color 0.15s, box-shadow 0.15s',
 }
 
+function getMockIrrigation(form) {
+  const humidity     = Number(form.humidity)
+  const temperature  = Number(form.temperature)
+
+  if (humidity > 90) {
+    return {
+      ...MOCK_IRRIGATION,
+      confidence: 'low', status: 'anomaly',
+      message: 'Аномально высокая влажность — вероятна ошибка датчика.',
+      anomalies: [
+        `Влажность ${humidity}% выходит за норму (5–90%)`,
+        'Проверьте датчик влажности',
+      ],
+    }
+  }
+  if (humidity < 20) {
+    return {
+      ...MOCK_IRRIGATION,
+      amount_mm: 45, confidence: 'low', status: 'anomaly',
+      message: 'Критически низкая влажность. Требуется срочный полив.',
+      anomalies: [
+        'Влажность ниже критического порога (< 20%)',
+        'Риск засыхания корневой системы',
+      ],
+    }
+  }
+  if (temperature > 35) {
+    return {
+      ...MOCK_IRRIGATION,
+      amount_mm: 35, confidence: 'low', status: 'anomaly',
+      message: 'Аномально высокая температура. Усиленное испарение.',
+      anomalies: [
+        `Температура воздуха ${temperature}°C — аномально высокая`,
+        'Усиленное испарение влаги из почвы',
+      ],
+    }
+  }
+  return { ...MOCK_IRRIGATION, anomalies: [] }
+}
+
 export default function SensorForm({ fieldId, onResult }) {
   const [form, setForm] = useState({
-    soil_moisture_percent: '',
-    soil_temperature: '',
-    air_temperature: '',
+    humidity:     '',
+    soil_moisture: '',
+    temperature:  '',
   })
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [result,       setResult]       = useState(null)
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState(null)
+  const [validWarnings, setValidWarnings] = useState([])
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -37,42 +76,28 @@ export default function SensorForm({ fieldId, onResult }) {
     setLoading(true)
     setError(null)
     setResult(null)
+    setValidWarnings([])
+
+    const humidity      = Number(form.humidity)
+    const soil_moisture = Number(form.soil_moisture)
+    const temperature   = Number(form.temperature)
 
     try {
-      // Шаг 1: GET /predict/forecast → берём precip_forecast_7days
-      let forecastData
-      try {
-        const res = await fetch(`${API_FORECAST}?field_id=${fieldId}`)
-        if (!res.ok) throw new Error('forecast error')
-        forecastData = await res.json()
-      } catch {
-        forecastData = { ...MOCK_FORECAST, field_id: fieldId }
+      // Шаг 1: валидация данных датчика
+      const validation = await validateSensorData({ field_id: fieldId, humidity, soil_moisture, temperature })
+      if (validation?.warnings?.length) {
+        setValidWarnings(validation.warnings)
       }
 
-      const precip = forecastData.precip_forecast_7days
+      // Шаг 2: сохранить данные датчика
+      await saveSensorData(fieldId, humidity, soil_moisture, temperature)
 
-      // Шаг 2: POST /recommend/irrigation
-      let irrigationData
-      try {
-        const res = await fetch(API_IRRIGATION, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            field_id: Number(fieldId),
-            soil_moisture_percent: Number(form.soil_moisture_percent),
-            soil_temperature: Number(form.soil_temperature),
-            air_temperature: Number(form.air_temperature),
-            precip_forecast_7days: precip,
-          }),
-        })
-        if (!res.ok) throw new Error('irrigation error')
-        irrigationData = await res.json()
-      } catch {
-        irrigationData = { ...MOCK_IRRIGATION }
-      }
+      // Шаг 3: получить рекомендацию по поливу
+      const irrigationData = await fetchIrrigationRecommend(fieldId, humidity, soil_moisture, temperature)
+        ?? getMockIrrigation(form)
 
       setResult(irrigationData)
-      onResult?.({ irrigation: irrigationData, precip: precip })
+      onResult?.({ irrigation: irrigationData })
     } catch {
       setError('Не удалось выполнить расчёт. Попробуйте снова.')
     } finally {
@@ -96,9 +121,9 @@ export default function SensorForm({ fieldId, onResult }) {
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           {[
-            { name: 'soil_moisture_percent', label: 'Влажность почвы (%)',   min: 0,   max: 100, placeholder: 'напр. 45' },
-            { name: 'soil_temperature',      label: 'Температура почвы (°C)', min: -20, max: 80,  placeholder: 'напр. 18' },
-            { name: 'air_temperature',       label: 'Температура воздуха (°C)',min: -40, max: 60, placeholder: 'напр. 25' },
+            { name: 'humidity',      label: 'Влажность воздуха (%)',    min: 0,   max: 100, placeholder: 'напр. 65' },
+            { name: 'soil_moisture', label: 'Температура почвы (°C)',   min: -20, max: 80,  placeholder: 'напр. 18' },
+            { name: 'temperature',   label: 'Температура воздуха (°C)', min: -40, max: 60,  placeholder: 'напр. 25' },
           ].map(f => (
             <label key={f.name} style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
               {f.label}
@@ -122,12 +147,8 @@ export default function SensorForm({ fieldId, onResult }) {
           disabled={loading}
           style={{
             background: loading ? 'var(--color-text-muted)' : 'var(--color-accent)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 28px',
-            fontSize: '14px',
-            fontWeight: 600,
+            color: '#fff', border: 'none', borderRadius: '8px',
+            padding: '10px 28px', fontSize: '14px', fontWeight: 600,
             fontFamily: 'Montserrat, sans-serif',
             cursor: loading ? 'not-allowed' : 'pointer',
             transition: 'background 0.15s',
@@ -139,15 +160,19 @@ export default function SensorForm({ fieldId, onResult }) {
         </button>
       </form>
 
-      {error && (
-        <div style={{ marginTop: '14px', color: 'var(--color-anomaly)', fontSize: '13px' }}>
-          {error}
+      {validWarnings.length > 0 && (
+        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--color-warning)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {validWarnings.map((w, i) => <span key={i}>⚠ {w}</span>)}
         </div>
+      )}
+
+      {error && (
+        <div style={{ marginTop: '14px', color: 'var(--color-anomaly)', fontSize: '13px' }}>{error}</div>
       )}
 
       {result && (
         <div style={{ marginTop: '20px' }}>
-          {showAlert && <AnomalyAlert message={result.message} />}
+          {showAlert && <AnomalyAlert message={result.message} anomalies={result.anomalies} />}
           <div style={{
             background: 'var(--color-accent-light)',
             border: '1px solid var(--color-border)',
@@ -165,11 +190,15 @@ export default function SensorForm({ fieldId, onResult }) {
               } />
               {result.irrigation_needed && (
                 <>
-                  <Stat label="Объём" value={`${result.amount_mm} мм`} />
-                  <Stat label="Дата"  value={result.next_date} />
+                  <Stat label="Объём"  value={`${result.amount_mm} мм`} />
+                  <Stat label="Дата"   value={result.next_date} />
                 </>
               )}
-              <Stat label="Уверенность" value={result.confidence === 'high' ? 'Высокая' : 'Низкая'} />
+              <Stat label="Уверенность" value={
+                typeof result.confidence === 'number'
+                  ? (result.confidence > 0.7 ? 'Высокая' : 'Низкая')
+                  : (result.confidence === 'high' ? 'Высокая' : 'Низкая')
+              } />
             </div>
           </div>
         </div>
