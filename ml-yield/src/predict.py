@@ -2,9 +2,8 @@ import joblib
 import pandas as pd
 import numpy as np
 from fetch_weather import fetch_forecast_weather
-from preprocess import aggregate_season
 
-MODEL_PATH = "/app/models/yield_model.pkl"
+MODEL_PATH = "../models/yield_model.pkl"
 
 FEATURE_COLS = [
     "temp_mean", "temp_max", "temp_min",
@@ -15,19 +14,19 @@ FEATURE_COLS = [
 
 
 def load_model():
-    return joblib.load(MODEL_PATH)
+    bundle = joblib.load(MODEL_PATH)
+    return bundle["model"], bundle["threshold"], bundle.get("cv_accuracy")
 
 
 def predict_from_forecast(district: str = "rostov") -> dict:
     """
-    Качает прогноз погоды и предсказывает урожайность.
+    Качает прогноз погоды и предсказывает урожайность (0/1).
     district — ключ района из DISTRICTS в fetch_weather.py
     """
-    model = load_model()
+    model, threshold, cv_acc = load_model()
 
     df_forecast = fetch_forecast_weather(days=7, district=district)
 
-    # Считаем фичи вручную (без агрегации по году — прогноз короткий)
     features = {
         "temp_mean": df_forecast["temperature_2m_mean"].mean(),
         "temp_max": df_forecast["temperature_2m_max"].max(),
@@ -38,33 +37,42 @@ def predict_from_forecast(district: str = "rostov") -> dict:
         "evapotranspiration": df_forecast["et0_fao_evapotranspiration"].sum(),
         "hot_days": (df_forecast["temperature_2m_max"] > 35).sum(),
         "dry_days": (df_forecast["precipitation_sum"] == 0).sum(),
-        "water_balance": df_forecast["precipitation_sum"].sum() - df_forecast["et0_fao_evapotranspiration"].sum(),
+        "water_balance": (
+            df_forecast["precipitation_sum"].sum()
+            - df_forecast["et0_fao_evapotranspiration"].sum()
+        ),
     }
 
     X = pd.DataFrame([features])[FEATURE_COLS]
-    prediction = float(model.predict(X)[0])
 
-    # Прогноз осадков — отдаём второй модели (полив)
+    # === БИНАРНОЕ ПРЕДСКАЗАНИЕ ===
+    yield_actual = int(model.predict(X)[0])          # 0 или 1
+    proba = model.predict_proba(X)[0]                 # вероятности [P(0), P(1)]
+    yield_proba = round(float(proba[yield_actual]), 3)
+
     precip_forecast = df_forecast[["date", "precipitation_sum"]].to_dict(orient="records")
 
     return {
-        "yield_prediction_centner_per_ha": round(prediction, 2),
-        "confidence": "high" if features["precip_total"] > 0 else "medium",
+        "yield_actual": yield_actual,                  # 0 = низкий, 1 = хороший
+        "yield_label": "хороший" if yield_actual == 1 else "низкий",
+        "yield_threshold_centner_per_ha": threshold,   # порог бинаризации
+        "confidence_proba": yield_proba,               # уверенность модели [0-1]
+        "model_cv_accuracy": cv_acc,                   # коэффициент обученности
         "weather_summary": {
             "avg_temp": round(features["temp_mean"], 1),
             "total_precip_mm": round(features["precip_total"], 1),
             "hot_days": int(features["hot_days"]),
         },
-        "precip_forecast_7days": precip_forecast  # для второй модели
+        "precip_forecast_7days": precip_forecast
     }
 
 
 def predict_from_manual_input(weather_data: dict) -> dict:
     """
-    Принимает данные вручную (от бэкенда/фронта).
-    weather_data — dict с теми же ключами что FEATURE_COLS.
+    Принимает погодные данные вручную и возвращает yield_actual (0/1).
+    weather_data — dict с ключами из FEATURE_COLS.
     """
-    model = load_model()
+    model, threshold, cv_acc = load_model()
 
     # Валидация аномалий
     anomalies = []
@@ -74,23 +82,33 @@ def predict_from_manual_input(weather_data: dict) -> dict:
         anomalies.append("Температура выше 50°C — проверьте датчик")
     if weather_data.get("temp_mean", 20) < -30:
         anomalies.append("Температура ниже -30°C — проверьте датчик")
+    if weather_data.get("hot_days", 0) < 0:
+        anomalies.append("Отрицательное число жарких дней — ошибка датчика")
 
     if anomalies:
         return {
             "status": "anomaly_detected",
-            "confidence": "low",
+            "yield_actual": None,
+            "yield_label": None,
+            "confidence_proba": None,
+            "model_cv_accuracy": cv_acc,
             "anomalies": anomalies,
-            "message": "Введённые данные содержат аномалии. Прогноз может быть неточным.",
-            "yield_prediction_centner_per_ha": None
+            "message": "Введённые данные содержат аномалии. Прогноз невозможен.",
         }
 
     X = pd.DataFrame([weather_data])[FEATURE_COLS]
-    prediction = float(model.predict(X)[0])
+
+    yield_actual = int(model.predict(X)[0])
+    proba = model.predict_proba(X)[0]
+    yield_proba = round(float(proba[yield_actual]), 3)
 
     return {
         "status": "ok",
-        "confidence": "high",
-        "yield_prediction_centner_per_ha": round(prediction, 2),
+        "yield_actual": yield_actual,                  # 0 или 1
+        "yield_label": "хороший" if yield_actual == 1 else "низкий",
+        "yield_threshold_centner_per_ha": threshold,
+        "confidence_proba": yield_proba,
+        "model_cv_accuracy": cv_acc,
         "anomalies": []
     }
 

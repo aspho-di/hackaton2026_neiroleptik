@@ -1,34 +1,24 @@
-"""
-api.py — FastAPI-сервис прогноза урожайности.
-Порт: 8001
-
-Эндпоинты:
-  GET  /health
-  GET  /predict/forecast        — прогноз по реальной погоде
-  POST /predict/manual          — прогноз по ручному вводу
-  GET  /districts               — список доступных районов
-"""
-
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
+import sys
+import os
+
+sys.path.append(os.path.dirname(__file__))
 from predict import predict_from_forecast, predict_from_manual_input
 
-app = FastAPI(
-    title="Yield Forecast Service",
-    description="Прогноз урожайности на основе погодных данных. Порт 8001.",
-    version="1.0.0",
+app = FastAPI(title="Агро ML API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-DISTRICTS = [
-    {"key": "rostov",      "name": "Ростов-на-Дону"},
-    {"key": "salsk",       "name": "Сальск"},
-    {"key": "zernograd",   "name": "Зерноградский район"},
-    {"key": "aksay",       "name": "Аксайский район"},
-    {"key": "taganrog",    "name": "Таганрог"},
-]
 
-
-class ManualWeatherInput(BaseModel):
+class WeatherInput(BaseModel):
     temp_mean: float
     temp_max: float
     temp_min: float
@@ -41,31 +31,28 @@ class ManualWeatherInput(BaseModel):
     water_balance: float
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok", "service": "yield-forecast", "port": 8001}
+@app.get("/predict/forecast")
+def forecast(district: str = "rostov"):
+    """Прогноз по реальной погоде с Open-Meteo. district — ключ района."""
+    return predict_from_forecast(district=district)
 
 
 @app.get("/districts")
-def get_districts():
-    """Список доступных районов."""
-    return DISTRICTS
-
-
-@app.get("/predict/forecast")
-def forecast(district: str = "rostov"):
-    """Прогноз урожайности по реальной погоде с Open-Meteo."""
-    result = predict_from_forecast()
-    result["district"] = district
-    return result
+def districts():
+    """Список доступных районов для фронта."""
+    from fetch_weather import DISTRICTS
+    return [{"key": k, "name": v["name"]} for k, v in DISTRICTS.items()]
 
 
 @app.post("/predict/manual")
-def manual(data: ManualWeatherInput):
-    """Прогноз урожайности по вручную введённым данным."""
-    return predict_from_manual_input(data.model_dump())
+def manual(data: WeatherInput):
+    """Прогноз по данным от фермера, с валидацией аномалий"""
+    return predict_from_manual_input(data.dict())
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8001, reload=True)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+# uvicorn api:app --host 0.0.0.0 --port 8001 --reload
