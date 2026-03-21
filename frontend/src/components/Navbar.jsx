@@ -1,17 +1,20 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getUser } from '../auth'
 import WheatEmoji from './icons/WheatEmoji'
 import { IconBarChart, IconDroplets, IconBell, IconCompare, IconSun, IconMoon } from './icons/Icons'
 import { MOCK_ALERTS } from '../mockData'
 
 function Avatar({ name, size = 36 }) {
-  const initials = (name || 'AG')
-    .split(' ')
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
+  const [avatarUrl, setAvatarUrl] = useState(() => getUser()?.avatar || null)
+
+  useEffect(() => {
+    function sync() { setAvatarUrl(getUser()?.avatar || null) }
+    window.addEventListener('avatar-updated', sync)
+    return () => window.removeEventListener('avatar-updated', sync)
+  }, [])
+
+  const initials = (name || 'AG').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
   return (
     <div
@@ -25,11 +28,15 @@ function Avatar({ name, size = 36 }) {
         flexShrink: 0, cursor: 'pointer',
         border: '2px solid rgba(255,255,255,0.3)',
         transition: 'opacity 0.15s', userSelect: 'none',
+        overflow: 'hidden',
       }}
       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
-      {initials}
+      {avatarUrl
+        ? <img src={avatarUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : initials
+      }
     </div>
   )
 }
