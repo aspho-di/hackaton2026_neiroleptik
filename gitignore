@@ -40,6 +40,9 @@ Thumbs.db
 
 # Логи
 *.log
+<<<<<<< HEAD
 
 .claude/
 CLAUDE.md
+=======
+>>>>>>> 2bef4d625e72765dbcf0c241bcce60c1a4ca6647

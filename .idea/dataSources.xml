@@ -13,6 +13,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+<<<<<<< HEAD
     <data-source source="LOCAL" name="agro@localhost" uuid="a8adbb85-d2e8-46a4-a0d7-220e810bc527">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
@@ -25,5 +26,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+=======
+>>>>>>> 2bef4d625e72765dbcf0c241bcce60c1a4ca6647
   </component>
 </project>
