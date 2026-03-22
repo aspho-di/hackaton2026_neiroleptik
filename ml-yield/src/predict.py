@@ -15,8 +15,8 @@ FEATURE_COLS = [
 
 def load_model():
     bundle = joblib.load(MODEL_PATH)
-    return bundle["model"], bundle["threshold"], bundle.get("cv_accuracy")
-
+    threshold = bundle.get("threshold") or 30.0  # дефолт если None
+    return bundle["model"], threshold, bundle.get("cv_accuracy")
 
 def predict_from_forecast(district: str = "rostov") -> dict:
     """
