@@ -454,7 +454,7 @@ export default function History() {
               <YAxis
                 tick={{ fontSize: 11, fill: '#6b7c6e' }}
                 width={44} axisLine={false} tickLine={false}
-                domain={[0, 'auto']}
+                domain={['auto', 'auto']}
                 tickFormatter={v => `${v}`}
                 unit=" ц/га"
               />
@@ -502,7 +502,7 @@ export default function History() {
           <EmptyBlock text="Нет показаний датчиков. Перейдите на карточку поля, введите данные и нажмите «Рассчитать»." />
         ) : (
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={sensorChartData} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
+            <LineChart data={sensorChartData} margin={{ top: 8, right: 56, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -510,11 +510,18 @@ export default function History() {
                 axisLine={false} tickLine={false}
                 interval="preserveStartEnd"
               />
-              <YAxis tick={{ fontSize: 11, fill: '#6b7c6e' }} width={42} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="moisture" orientation="left"
+                tick={{ fontSize: 11, fill: '#3b82f6' }} width={44}
+                axisLine={false} tickLine={false}
+                domain={[0, 100]} unit="%" />
+              <YAxis yAxisId="temp" orientation="right"
+                tick={{ fontSize: 11, fill: '#f59e0b' }} width={44}
+                axisLine={false} tickLine={false}
+                unit="°C" />
               <Tooltip content={<SensorTooltip />} />
               <Legend formatter={n => n === 'soil_moisture' ? 'Влажность почвы, %' : 'Темп. воздуха, °C'} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              <Line type="monotone" dataKey="soil_moisture" name="soil_moisture" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="air_temperature" name="air_temperature" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
+              <Line yAxisId="moisture" type="monotone" dataKey="soil_moisture" name="soil_moisture" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
+              <Line yAxisId="temp" type="monotone" dataKey="air_temperature" name="air_temperature" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -602,7 +609,7 @@ export default function History() {
             />
             <Line
               type="monotone" dataKey="yield_ctha"
-              stroke="#9ca3af" strokeWidth={2} strokeDasharray="0"
+              stroke="#9ca3af" strokeWidth={2}
               dot={{ r: 4, fill: '#9ca3af', stroke: '#fff', strokeWidth: 2 }}
               activeDot={{ r: 6 }}
               isAnimationActive={false}
@@ -636,7 +643,7 @@ export default function History() {
               stroke="#9ca3af" strokeWidth={2}
               dot={({ cx, cy, value }) => (
                 <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={4}
-                  fill={value >= 0 ? '#9ca3af' : '#d1d5db'}
+                  fill={value >= 0 ? '#22c55e' : '#ef4444'}
                   stroke="#fff" strokeWidth={1.5} />
               )}
               name="water_balance" isAnimationActive={false}

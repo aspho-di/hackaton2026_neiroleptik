@@ -9,7 +9,6 @@ import { fetchForecast, fetchCurrentWeather, deleteField, updateField, fetchSens
 
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning, IconCheck, IconX, IconArrowLeft, IconChevronDown, IconZap, IconPencil } from '../components/icons/Icons'
-import FieldMap from '../components/FieldMap'
 import Toast from '../components/Toast'
 import WheatEmoji from '../components/icons/WheatEmoji'
 import AnomalyAlert from '../components/AnomalyAlert'
@@ -48,7 +47,7 @@ function BalanceDot({ cx, cy, value }) {
 }
 
 function WaterBalanceChart({ precip }) {
-  const data = precip.map((p, i) => ({ day: DAYS[i], balance: +(p - ET0).toFixed(1) }))
+  const data = precip.slice(0, 7).map((p, i) => ({ day: DAYS[i], balance: +(p - ET0).toFixed(1) }))
   const avg  = data.reduce((s, d) => s + d.balance, 0) / data.length
   const lineColor = avg >= 0 ? '#22c55e' : '#ef4444'
 
@@ -1096,8 +1095,6 @@ export default function FieldDetail() {
                 {/* Водный баланс — после расчёта */}
                 {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days} />}
 
-                {/* Мини-карта */}
-                <FieldMap latitude={field?.latitude} longitude={field?.longitude} fieldName={field?.name} />
 
               </div>
             </div>
