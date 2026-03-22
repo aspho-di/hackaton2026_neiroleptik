@@ -46,10 +46,15 @@ function BalanceDot({ cx, cy, value }) {
   return <circle cx={cx} cy={cy} r={4} fill={value >= 0 ? '#22c55e' : '#ef4444'} stroke="#fff" strokeWidth={1.5} />
 }
 
-function WaterBalanceChart({ precip }) {
+function WaterBalanceChart({ precip, irrigation }) {
   const data = precip.slice(0, 7).map((p, i) => ({ day: DAYS[i], balance: +(p - ET0).toFixed(1) }))
   const avg  = data.reduce((s, d) => s + d.balance, 0) / data.length
   const lineColor = avg >= 0 ? '#22c55e' : '#ef4444'
+
+  const needsWater = irrigation?.irrigate === true
+  const irrColor   = needsWater ? '#f59e0b' : '#22c55e'
+  const irrBg      = needsWater ? '#fffbeb' : '#f0fdf4'
+  const irrBorder  = needsWater ? '#fde68a' : '#bbf7d0'
 
   return (
     <div style={{
@@ -64,7 +69,8 @@ function WaterBalanceChart({ precip }) {
         <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 2 }}>Водный баланс</div>
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Осадки − ET₀ ({ET0} мм/день) по дням</div>
       </div>
-      <ResponsiveContainer width="100%" height="100%">
+
+      <ResponsiveContainer width="100%" height={120}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#6b7c6e' }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#6b7c6e' }} unit=" мм" width={46} axisLine={false} tickLine={false} />
@@ -73,6 +79,49 @@ function WaterBalanceChart({ precip }) {
           <Line type="monotone" dataKey="balance" stroke={lineColor} strokeWidth={2.5} dot={<BalanceDot />} activeDot={{ r: 5 }} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
+
+      {/* Рекомендация по поливу */}
+      {irrigation && (
+        <div style={{
+          marginTop: 14, padding: '12px 14px',
+          background: irrBg, border: `1px solid ${irrBorder}`,
+          borderRadius: 10, flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: needsWater ? 8 : 0 }}>
+            <IconDroplet size={15} color={irrColor} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: irrColor, fontFamily: 'Montserrat, sans-serif' }}>
+              {needsWater ? 'Требуется полив' : 'Полив не нужен'}
+            </span>
+          </div>
+          {needsWater && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px' }}>
+              {irrigation.amount_mm != null && (
+                <div style={{ fontSize: 12, color: 'var(--color-text)' }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Объём: </span>
+                  <b style={{ fontFamily: 'Montserrat, sans-serif' }}>{irrigation.amount_mm} мм</b>
+                </div>
+              )}
+              {irrigation.when && (
+                <div style={{ fontSize: 12, color: 'var(--color-text)' }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Дата: </span>
+                  <b style={{ fontFamily: 'Montserrat, sans-serif' }}>{irrigation.when}</b>
+                </div>
+              )}
+              {irrigation.rain_next_days_mm != null && (
+                <div style={{ fontSize: 12, color: 'var(--color-text)' }}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Осадки 2–3 дня: </span>
+                  <b>{irrigation.rain_next_days_mm} мм</b>
+                </div>
+              )}
+            </div>
+          )}
+          {irrigation.reason && (
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+              {irrigation.reason}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -1104,7 +1153,7 @@ export default function FieldDetail() {
                 </div>
 
                 {/* Водный баланс — после расчёта */}
-                {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days} />}
+                {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days ?? forecast?.precip_forecast_7days ?? []} irrigation={sensorResult.irrigation} />}
 
 
               </div>
