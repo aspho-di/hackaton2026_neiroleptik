@@ -50,17 +50,39 @@ export async function deleteField(id) {
   }
 }
 
+// ── Маппинг русского района → ML-ключ ─────────────────────────────────────────
+const DISTRICT_ML_KEY = [
+  [/азов/i,          'azov'],
+  [/аксай/i,         'aksay'],
+  [/таганрог/i,      'taganrog'],
+  [/шахт/i,          'shakhty'],
+  [/новочеркасск/i,  'novocherkassk'],
+  [/сальск/i,        'salsk'],
+  [/миллеров/i,      'millerovo'],
+  [/морозовск/i,     'morozovsk'],
+  [/волгодонск/i,    'volgodonsk'],
+]
+
+function districtToMLKey(district) {
+  if (!district) return 'rostov'
+  for (const [re, key] of DISTRICT_ML_KEY) {
+    if (re.test(district)) return key
+  }
+  return 'rostov'
+}
+
 // ── Прогноз урожайности ────────────────────────────────────────────────────────
 // Два источника параллельно:
 //   1. ML :8001 (через Go-прокси) — бинарный классификатор: yield_actual 0|1 + precip
 //   2. Go :8080 /api/v1/predict   — формула по датчикам: yield_prediction (ц/га)
-export async function fetchForecast(field_id, latitude, longitude) {
+export async function fetchForecast(field_id, latitude, longitude, district) {
   try {
     const ctrl  = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 8000)
+    const mlDistrict = districtToMLKey(district)
 
     const mlPromise = fetch(
-      `${BASE_URL}/api/v1/predict/forecast?district=rostov`,
+      `${BASE_URL}/api/v1/predict/forecast?district=${mlDistrict}`,
       { signal: ctrl.signal }
     )
     const goPromise = (field_id && latitude != null && longitude != null)
