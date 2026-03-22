@@ -6,7 +6,7 @@ import { useFields } from '../hooks/useFields'
 import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap, IconCamera } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
 
-const TG_BOT = 'AgroAnalyticsRostovBot'
+const TG_BOT = 'agro_backend_bot'
 const TG_STORAGE_KEY = 'telegram_connected'
 
 function getTgConnected() {
