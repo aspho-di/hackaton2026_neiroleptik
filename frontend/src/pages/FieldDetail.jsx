@@ -215,11 +215,24 @@ function YieldCard({ forecast }) {
             Прогноз урожайности
           </span>
         </div>
-        {isMock && (
-          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontWeight: 600, flexShrink: 0 }}>
-            демо-данные
-          </span>
-        )}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+          {isGood !== null && (
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              padding: '2px 9px', borderRadius: 12,
+              background: isGood ? '#dcfce7' : '#fee2e2',
+              color: isGood ? '#15803d' : '#b91c1c',
+              border: `1px solid ${isGood ? '#86efac' : '#fca5a5'}`,
+            }}>
+              {isGood ? '1 — хороший' : '0 — низкий'}
+            </span>
+          )}
+          {isMock && (
+            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontWeight: 600 }}>
+              демо-данные
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Главный вердикт */}
@@ -244,8 +257,8 @@ function YieldCard({ forecast }) {
       {confNum != null && (
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 4 }}>
-            <span>Уверенность модели</span>
-            <span style={{ fontWeight: 700, color: confNum >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)' }}>
+            <span>Уверенность прогноза</span>
+            <span style={{ fontWeight: 700, color: accentColor }}>
               {Math.round(confNum * 100)}%
             </span>
           </div>
@@ -253,7 +266,7 @@ function YieldCard({ forecast }) {
             <div style={{
               height: '100%', borderRadius: 3,
               width: `${Math.round(confNum * 100)}%`,
-              background: confNum >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)',
+              background: accentColor,
               transition: 'width 0.6s ease',
             }} />
           </div>
