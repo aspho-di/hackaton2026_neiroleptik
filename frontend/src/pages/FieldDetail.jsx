@@ -124,11 +124,14 @@ function StatCard({ icon, label, value, color, bg, hint }) {
 
 // ── YieldCard ─────────────────────────────────────────────────────────────────
 function YieldCard({ forecast }) {
-  const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, confidence } = forecast
+  const { yield_ctha, yield_ctha_float, yield_label, yield_threshold, model_cv_accuracy, confidence } = forecast
 
   // yield_ctha — бинарный результат ML: 0 (низкий) или 1 (хороший)
+  // Если числовое значение недоступно — выводим из yield_label
   const hasML   = yield_ctha === 0 || yield_ctha === 1
-  const isGood  = hasML ? yield_ctha === 1 : null
+  const isGood  = hasML
+    ? yield_ctha === 1
+    : yield_label === 'хороший' ? true : yield_label === 'низкий' ? false : null
   const confNum = typeof confidence === 'number' ? confidence : null
   const isMock  = forecast._source !== 'ml'
 
@@ -136,15 +139,17 @@ function YieldCard({ forecast }) {
   const bgColor     = isGood === false ? '#fef2f2' : 'var(--color-accent-light)'
   const borderColor = isGood === false ? '#fca5a5' : 'var(--color-border)'
 
-  // Человекочитаемый вердикт
+  // Вердикт
   const verdict = yield_label
     ? (yield_label === 'хороший' ? 'Хороший урожай' : 'Низкий урожай')
     : isGood === true ? 'Хороший урожай' : isGood === false ? 'Низкий урожай' : 'Нет данных'
 
-  // Диапазон ожидаемой урожайности на основе порога и уверенности
+  // Ожидаемая урожайность: реальный float от ML или диапазон из порога
   const thr = yield_threshold ?? 35
   const spread = confNum != null ? Math.round((confNum - 0.5) * 24) : 5
-  const yieldRange = isGood === true
+  const yieldDisplay = yield_ctha_float != null
+    ? `${yield_ctha_float} ц/га`
+    : isGood === true
     ? `${thr}–${thr + spread} ц/га`
     : isGood === false
     ? `${Math.max(0, thr - spread)}–${thr} ц/га`
@@ -173,10 +178,10 @@ function YieldCard({ forecast }) {
         <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: accentColor, marginBottom: 3 }}>
           {verdict}
         </div>
-        {yieldRange && (
+        {yieldDisplay && (
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
             ожидается{' '}
-            <b style={{ color: accentColor, fontFamily: 'Montserrat, sans-serif' }}>{yieldRange}</b>
+            <b style={{ color: accentColor, fontFamily: 'Montserrat, sans-serif' }}>{yieldDisplay}</b>
           </div>
         )}
         {yield_threshold != null && (
