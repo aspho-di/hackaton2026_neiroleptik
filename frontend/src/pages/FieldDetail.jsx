@@ -123,7 +123,7 @@ function StatCard({ icon, label, value, color, bg, hint }) {
 // ── YieldCard ─────────────────────────────────────────────────────────────────
 // ML-модель возвращает бинарный прогноз: yield_ctha = 0 (низкий) или 1 (хороший)
 function YieldCard({ forecast, status }) {
-  const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, risk_factors, confidence } = forecast
+  const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, risk_factors, confidence, yield_formula_ctha } = forecast
 
   // ВАЖНО: yield_ctha может быть 0 — это валидное значение, не отсутствие данных
   const hasData  = yield_ctha === 0 || yield_ctha === 1
@@ -198,6 +198,14 @@ function YieldCard({ forecast, status }) {
       {model_cv_accuracy != null && (
         <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>
           Точность модели (CV): <b style={{ color: 'var(--color-text)' }}>{Math.round(model_cv_accuracy * 100)}%</b>
+        </div>
+      )}
+
+      {/* Расчётная урожайность от Go-формулы */}
+      {yield_formula_ctha != null && (
+        <div style={{ marginTop: 8, padding: '6px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 6, fontSize: 12, color: 'var(--color-text-muted)' }}>
+          Расчётная: <b style={{ color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif' }}>{yield_formula_ctha} ц/га</b>
+          <span style={{ marginLeft: 6, fontSize: 10 }}>(по датчикам)</span>
         </div>
       )}
 
