@@ -7,7 +7,8 @@ import WheatEmoji from '../components/icons/WheatEmoji'
 import Toast, { showToast } from '../components/Toast'
 import Onboarding from '../components/Onboarding'
 import { CROPS, CROP_LABEL } from '../constants/districts'
-import { IconSearch, IconX, IconCheck } from '../components/icons/Icons'
+import { IconSearch, IconX, IconCheck, IconDroplets, IconBarChart } from '../components/icons/Icons'
+import { useNavigate } from 'react-router-dom'
 
 const GO_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
@@ -166,6 +167,8 @@ export default function Dashboard() {
   const parts = (user?.name || '').trim().split(' ')
   const firstName = parts.slice(1, 3).join(' ') || 'Агроном'
 
+  const navigate = useNavigate()
+  const [tab, setTab] = useState('overview')
   const [savedFields, setSavedFields] = useState(() => loadSavedFields())
   const [showModal, setShowModal] = useState(false)
 
@@ -232,12 +235,17 @@ export default function Dashboard() {
     setCropFilter('all')
   }
 
+  const TABS = [
+    { key: 'overview', label: 'Главная' },
+    { key: 'fields',   label: `Участки${allFields.length ? ` (${allFields.length})` : ''}` },
+  ]
+
   return (
     <>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 24px 0' }}>
 
         {/* Greeting */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <h1 className="page-title">
             Добрый день, {firstName}!
           </h1>
@@ -245,6 +253,35 @@ export default function Dashboard() {
             Ростовская область — прогнозы урожайности и рекомендации по поливу
           </p>
         </div>
+
+        {/* Tabs */}
+        <div style={{
+          display: 'flex', gap: 4, marginBottom: 24,
+          borderBottom: '2px solid var(--color-border)',
+          paddingBottom: 0,
+        }}>
+          {TABS.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              style={{
+                padding: '8px 20px',
+                fontSize: 14, fontWeight: tab === t.key ? 700 : 500,
+                fontFamily: 'Montserrat, sans-serif',
+                color: tab === t.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: `2px solid ${tab === t.key ? 'var(--color-accent)' : 'transparent'}`,
+                marginBottom: -2,
+                transition: 'color 0.15s, border-color 0.15s',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── TAB: Главная ── */}
+        {tab === 'overview' && (<>
 
         {/* Stat pills */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -255,6 +292,70 @@ export default function Dashboard() {
 
         {/* Data sources status */}
         <DataSourcesWidget />
+
+        {/* Quick actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
+          {[
+            {
+              label: 'Мои участки',
+              desc: `${allFields.length} участков`,
+              icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+              color: 'var(--color-accent)',
+              onClick: () => setTab('fields'),
+            },
+            {
+              label: 'Полив',
+              desc: 'Оптимизация ресурса',
+              icon: <IconDroplets size={22} color="var(--color-accent)" />,
+              color: 'var(--color-accent)',
+              onClick: () => navigate('/irrigation'),
+            },
+            {
+              label: 'Сравнение',
+              desc: 'Сравнить участки',
+              icon: <IconBarChart size={22} color="#3b82f6" />,
+              color: '#3b82f6',
+              onClick: () => navigate('/compare'),
+            },
+            {
+              label: 'История',
+              desc: 'Данные датчиков',
+              icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              color: 'var(--color-warning)',
+              onClick: () => navigate('/history'),
+            },
+          ].map(action => (
+            <button
+              key={action.label}
+              onClick={action.onClick}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-card)',
+                boxShadow: 'var(--shadow-card)',
+                padding: '16px 18px',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'box-shadow 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)'; e.currentTarget.style.borderColor = action.color }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; e.currentTarget.style.borderColor = 'var(--color-border)' }}
+            >
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: `${action.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: action.color }}>
+                {action.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 2 }}>{action.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{action.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        </>)}
+
+        {/* ── TAB: Участки ── */}
+        {tab === 'fields' && (<>
 
         {/* Search + filter button */}
         {allFields.length > 0 && (
@@ -504,6 +605,8 @@ export default function Dashboard() {
         ) : (
           <FieldList fields={filteredFields} />
         )}
+
+        </>)}
       </div>
 
       {showModal && (
