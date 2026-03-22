@@ -45,6 +45,7 @@ func NewRouter(db *sql.DB, rdb *redis.Client) http.Handler {
 	predictSvc := service.NewPredictService(
 		repository.NewSensorRepository(db),
 		repository.NewPredictionRepository(db),
+		repository.NewFieldRepository(db),
 		repository.NewAlertRepository(db),
 		weatherSvc,
 	)

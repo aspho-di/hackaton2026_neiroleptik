@@ -11,6 +11,7 @@ import (
 type PredictService struct {
 	sensorRepo repository.SensorDataRepository
 	predRepo   repository.PredictionRepository
+	fieldRepo  repository.FieldRepository
 	alertRepo  repository.AlertRepository
 	weather    *WeatherService
 }
@@ -18,12 +19,14 @@ type PredictService struct {
 func NewPredictService(
 	sensorRepo repository.SensorDataRepository,
 	predRepo repository.PredictionRepository,
+	fieldRepo repository.FieldRepository,
 	alertRepo repository.AlertRepository,
 	weather *WeatherService,
 ) *PredictService {
 	return &PredictService{
 		sensorRepo: sensorRepo,
 		predRepo:   predRepo,
+		fieldRepo:  fieldRepo,
 		alertRepo:  alertRepo,
 		weather:    weather,
 	}
@@ -75,9 +78,9 @@ func (s *PredictService) Predict(ctx context.Context, input PredictInput) (*Pred
 	prediction.FieldID = input.FieldID
 	prediction.IsAnomaly = isAnomaly
 
-	// Сохраняем
-	if err := s.predRepo.Create(ctx, prediction); err != nil {
-		return nil, err
+	// Сохраняем только если поле существует в БД (field_id из фронта может быть локальным)
+	if _, err := s.fieldRepo.GetByID(ctx, input.FieldID); err == nil {
+		_ = s.predRepo.Create(ctx, prediction)
 	}
 
 	// Создаём алерт при аномалии
