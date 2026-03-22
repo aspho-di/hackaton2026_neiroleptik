@@ -6,6 +6,259 @@ import { useFields } from '../hooks/useFields'
 import { IconCircleAlert, IconCheck, IconBuilding, IconMapPin, IconMail, IconPhone, IconMap, IconCamera } from '../components/icons/Icons'
 import WheatEmoji from '../components/icons/WheatEmoji'
 
+const TG_BOT = 'AgroAnalyticsRostovBot'
+const TG_STORAGE_KEY = 'telegram_connected'
+
+function getTgConnected() {
+  try { return !!localStorage.getItem(TG_STORAGE_KEY) } catch { return false }
+}
+
+function TelegramIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#29B6F6" />
+      <path d="M5.5 11.5l11-4.5-1.5 9-3.5-2.5-2 2v-3l5-4.5-6.5 3.5L5.5 11.5z" fill="#fff" />
+    </svg>
+  )
+}
+
+function TelegramConnectCard({ onConnected }) {
+  const [open, setOpen]   = useState(false)
+  const [step, setStep]   = useState(1)
+  const [done, setDone]   = useState(getTgConnected)
+
+  function connect() {
+    try { localStorage.setItem(TG_STORAGE_KEY, '1') } catch {}
+    setDone(true)
+    setOpen(false)
+    setStep(1)
+    onConnected?.()
+    window.dispatchEvent(new Event('telegram-connected'))
+  }
+
+  function disconnect() {
+    try { localStorage.removeItem(TG_STORAGE_KEY) } catch {}
+    setDone(false)
+    window.dispatchEvent(new Event('telegram-connected'))
+  }
+
+  return (
+    <div style={{
+      background: 'var(--color-surface)',
+      border: `1px solid ${done ? 'var(--color-border)' : '#bfdbfe'}`,
+      borderRadius: 'var(--radius-card)',
+      boxShadow: 'var(--shadow-card)',
+      padding: '18px 20px',
+      marginBottom: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+        background: done ? '#e8f5e9' : '#e0f2fe',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <TelegramIcon size={24} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <span style={{ fontWeight: 700, fontSize: 14, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)' }}>
+            Telegram-уведомления
+          </span>
+          {done && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: '#15803d',
+              background: '#dcfce7', borderRadius: 6, padding: '2px 8px',
+            }}>✓ Подключено</span>
+          )}
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>
+          {done
+            ? 'Вы будете получать мгновенные оповещения об аномалиях и рекомендациях по поливу'
+            : 'Получайте мгновенные оповещения об аномалиях прямо в Telegram'}
+        </p>
+      </div>
+
+      {done ? (
+        <button
+          onClick={disconnect}
+          style={{
+            padding: '7px 14px', border: '1px solid var(--color-border)',
+            borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            background: 'transparent', color: 'var(--color-text-muted)',
+            transition: 'border-color 0.15s', flexShrink: 0,
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-anomaly)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+        >
+          Отключить
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            padding: '8px 16px',
+            background: '#29B6F6', color: '#fff',
+            border: 'none', borderRadius: 8,
+            fontSize: 13, fontWeight: 700,
+            fontFamily: 'Montserrat, sans-serif',
+            cursor: 'pointer', flexShrink: 0,
+            transition: 'background 0.15s',
+            boxShadow: '0 2px 8px rgba(41,182,246,0.30)',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#0288D1'}
+          onMouseLeave={e => e.currentTarget.style.background = '#29B6F6'}
+        >
+          Подключить
+        </button>
+      )}
+
+      {/* Modal */}
+      {open && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={e => { if (e.target === e.currentTarget) { setOpen(false); setStep(1) } }}
+        >
+          <div style={{
+            background: 'var(--color-surface)',
+            borderRadius: 16, padding: '28px 28px 24px',
+            maxWidth: 420, width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <TelegramIcon size={28} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)' }}>
+                  Подключение Telegram
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                  Шаг {step} из 2
+                </div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 4, borderRadius: 2, background: 'var(--color-border)', marginBottom: 24 }}>
+              <div style={{ height: '100%', borderRadius: 2, background: '#29B6F6', width: step === 1 ? '50%' : '100%', transition: 'width 0.3s' }} />
+            </div>
+
+            {step === 1 ? (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--color-text)', lineHeight: 1.6, marginBottom: 16 }}>
+                  Откройте нашего Telegram-бота и нажмите <b>/start</b>, чтобы начать получать уведомления об аномалиях, рекомендациях по поливу и прогнозах урожайности.
+                </p>
+
+                <div style={{
+                  background: '#f0f9ff', border: '1px solid #bae6fd',
+                  borderRadius: 10, padding: '12px 16px', marginBottom: 20,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <TelegramIcon size={20} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369a1' }}>@{TG_BOT}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <a
+                    href={`https://t.me/${TG_BOT}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      flex: 1, padding: '10px 0', textAlign: 'center',
+                      background: '#29B6F6', color: '#fff',
+                      borderRadius: 8, fontWeight: 700, fontSize: 14,
+                      fontFamily: 'Montserrat, sans-serif', textDecoration: 'none',
+                      boxShadow: '0 2px 8px rgba(41,182,246,0.30)',
+                    }}
+                  >
+                    Открыть Telegram
+                  </a>
+                  <button
+                    onClick={() => setStep(2)}
+                    style={{
+                      flex: 1, padding: '10px 0',
+                      background: 'transparent', border: '1px solid var(--color-border)',
+                      borderRadius: 8, fontWeight: 600, fontSize: 13,
+                      cursor: 'pointer', color: 'var(--color-text)',
+                      fontFamily: 'Montserrat, sans-serif',
+                    }}
+                  >
+                    Уже открыл →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--color-text)', lineHeight: 1.6, marginBottom: 16 }}>
+                  Отправьте боту команду <b>/start</b>. Бот автоматически настроит уведомления для вашего аккаунта.
+                </p>
+
+                <div style={{
+                  background: '#f8fafc', border: '1px dashed var(--color-border)',
+                  borderRadius: 10, padding: '16px', marginBottom: 20,
+                }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Типы уведомлений
+                  </div>
+                  {[
+                    '🚨 Аномалии показаний датчиков',
+                    '💧 Рекомендации по поливу',
+                    '🌾 Прогнозы урожайности',
+                    '⛈️ Погодные предупреждения',
+                  ].map(t => (
+                    <div key={t} style={{ fontSize: 13, color: 'var(--color-text)', padding: '3px 0' }}>{t}</div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => setStep(1)}
+                    style={{
+                      padding: '10px 16px', background: 'transparent',
+                      border: '1px solid var(--color-border)', borderRadius: 8,
+                      fontSize: 13, cursor: 'pointer', color: 'var(--color-text-muted)',
+                    }}
+                  >
+                    ← Назад
+                  </button>
+                  <button
+                    onClick={connect}
+                    style={{
+                      flex: 1, padding: '10px 0',
+                      background: 'var(--color-accent)', color: '#fff',
+                      border: 'none', borderRadius: 8,
+                      fontWeight: 700, fontSize: 14,
+                      fontFamily: 'Montserrat, sans-serif',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(76,175,80,0.30)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-accent-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'var(--color-accent)'}
+                  >
+                    ✓ Готово, подключить
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function getCompletedRecs() {
   return Number(localStorage.getItem('completed_recommendations') || 0)
 }
@@ -197,6 +450,9 @@ export default function Profile() {
           <StatCard icon={<IconCircleAlert size={24} color="var(--color-anomaly)" />}     value={activeAnomalies} label="Активных аномалий"      valueColor="var(--color-anomaly)" />
           <StatCard icon={<IconCheck size={24} color="var(--color-normal)" />}            value={completedRecs}   label="Рекомендаций выполнено" valueColor="var(--color-normal)" />
         </div>
+
+        {/* Telegram */}
+        <TelegramConnectCard />
 
         {/* Contact & info card */}
         <div style={{

@@ -183,6 +183,27 @@ export default function Dashboard() {
   const [savedFields, setSavedFields] = useState(() => loadSavedFields())
   const [showModal, setShowModal] = useState(false)
 
+  const [tgBanner, setTgBanner] = useState(() => {
+    try {
+      return !localStorage.getItem('telegram_connected') && !localStorage.getItem('tg_banner_dismissed')
+    } catch { return false }
+  })
+
+  useEffect(() => {
+    function onTgChanged() {
+      try {
+        setTgBanner(!localStorage.getItem('telegram_connected') && !localStorage.getItem('tg_banner_dismissed'))
+      } catch {}
+    }
+    window.addEventListener('telegram-connected', onTgChanged)
+    return () => window.removeEventListener('telegram-connected', onTgChanged)
+  }, [])
+
+  function dismissTgBanner() {
+    try { localStorage.setItem('tg_banner_dismissed', '1') } catch {}
+    setTgBanner(false)
+  }
+
   useEffect(() => {
     fetchFields().then(data => {
       if (!Array.isArray(data) || !data.length) return
@@ -268,6 +289,47 @@ export default function Dashboard() {
             <StatPill key={card.key} dot={card.dot} label={card.label} count={allFields.filter(card.filter).length} />
           ))}
         </div>
+
+        {/* Telegram banner */}
+        {tgBanner && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: '#e0f2fe', border: '1px solid #bae6fd',
+            borderRadius: 'var(--radius-card)', padding: '12px 16px',
+            marginBottom: 16,
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="12" fill="#29B6F6" />
+              <path d="M5.5 11.5l11-4.5-1.5 9-3.5-2.5-2 2v-3l5-4.5-6.5 3.5L5.5 11.5z" fill="#fff" />
+            </svg>
+            <span style={{ flex: 1, fontSize: 13, color: '#0369a1' }}>
+              <b>Подключите Telegram</b> — получайте мгновенные уведомления об аномалиях прямо в мессенджер
+            </span>
+            <a
+              href="/profile"
+              style={{
+                padding: '6px 14px', borderRadius: 7,
+                background: '#29B6F6', color: '#fff',
+                fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                fontFamily: 'Montserrat, sans-serif', flexShrink: 0,
+              }}
+            >
+              Подключить
+            </a>
+            <button
+              onClick={dismissTgBanner}
+              title="Закрыть"
+              style={{
+                background: 'none', border: 'none',
+                cursor: 'pointer', padding: 4, flexShrink: 0,
+                color: '#0369a1', opacity: 0.6,
+                display: 'flex', alignItems: 'center',
+              }}
+            >
+              <IconX size={16} color="#0369a1" />
+            </button>
+          </div>
+        )}
 
         {/* Data sources status */}
         <DataSourcesWidget />
