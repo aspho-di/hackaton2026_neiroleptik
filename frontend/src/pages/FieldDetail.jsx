@@ -720,20 +720,64 @@ function ApiSensorPanel({ fieldId, crop, onResult }) {
       )}
 
       {/* Result */}
-      {result && (
-        <div style={{ marginTop: 20, background: 'var(--color-accent-light)', border: '1px solid var(--color-border)', borderRadius: 10, padding: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12, fontFamily: 'Montserrat, sans-serif', fontSize: 14, color: 'var(--color-text)' }}>
-            Рекомендация по поливу
+      {result && (() => {
+        const isAnomaly  = result.is_anomaly === true || result.status === 'anomaly'
+        const showAlert  = result.status === 'anomaly' || result.confidence === 'low'
+        const cardBg     = isAnomaly ? '#fef2f2' : result.irrigate ? '#fffbeb' : '#f0fdf4'
+        const cardBorder = isAnomaly ? '#fecaca' : result.irrigate ? '#fde68a' : '#bbf7d0'
+        const cardAccent = isAnomaly ? 'var(--color-anomaly)' : result.irrigate ? 'var(--color-warning)' : 'var(--color-normal)'
+        const cardIcon   = isAnomaly ? <IconWarning size={14} color={cardAccent} /> : result.irrigate ? <IconDroplet size={14} color={cardAccent} /> : <IconCheck size={14} color={cardAccent} />
+        const cardText   = isAnomaly ? 'Аномалия' : result.irrigate ? 'Требуется полив' : 'Полив не нужен'
+        return (
+          <div style={{ marginTop: 20 }}>
+            {showAlert && <AnomalyAlert message={result.message} anomalies={result.anomalies} />}
+            {isAnomaly && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', marginBottom: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: 'var(--color-anomaly)', fontWeight: 600 }}>
+                <IconWarning size={14} color="var(--color-anomaly)" />
+                Запись помечена флагом is_anomaly — данные отправлены на проверку
+              </div>
+            )}
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderLeft: `4px solid ${cardAccent}`, borderRadius: 10, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                {cardIcon}
+                <div style={{ fontWeight: 700, color: cardAccent, fontFamily: 'Montserrat, sans-serif', fontSize: 14 }}>{cardText}</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+                <MiniStat label="Нужен полив" value={
+                  result.irrigate
+                    ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconCheck size={13} color="var(--color-normal)" /> Да</span>
+                    : <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconX size={13} color="var(--color-anomaly)" /> Нет</span>
+                } color={result.irrigate ? 'var(--color-normal)' : 'var(--color-anomaly)'} />
+                {result.irrigate && result.amount_mm != null && <MiniStat label="Рекомендуется" value={`${result.amount_mm} мм`} />}
+                {result.when && <MiniStat label="Дата" value={result.when} />}
+                {result.rain_next_days_mm != null && <MiniStat label="Осадки 2–3 дня" value={`${result.rain_next_days_mm} мм`} />}
+                {result.irrigation_volume != null && result.amount_mm != null && (
+                  <MiniStat label="Факт / Рекоменд." value={
+                    <span style={{ color: result.irrigation_volume < result.amount_mm ? 'var(--color-warning)' : 'var(--color-normal)' }}>
+                      {result.irrigation_volume} / {result.amount_mm} мм
+                    </span>
+                  } />
+                )}
+              </div>
+              {result.reason && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>{result.reason}</div>}
+              {result.profile_used && (
+                <details style={{ marginTop: 12 }}>
+                  <summary style={{ fontSize: 11, color: 'var(--color-text-muted)', cursor: 'pointer', userSelect: 'none', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Профиль культуры: {result.profile_used.display_name ?? result.profile_used.crop_name}
+                  </summary>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    {result.profile_used.moisture_threshold_low  != null && <span>Влажность min: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.moisture_threshold_low}%</b></span>}
+                    {result.profile_used.moisture_threshold_high != null && <span>Влажность max: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.moisture_threshold_high}%</b></span>}
+                    {result.profile_used.base_water_mm           != null && <span>Базовый полив: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.base_water_mm} мм</b></span>}
+                    {result.profile_used.heat_threshold          != null && <span>Порог жары: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.heat_threshold}°C</b></span>}
+                    {result.profile_used.rain_skip_mm            != null && <span>Пропуск при осадках: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.rain_skip_mm} мм</b></span>}
+                  </div>
+                </details>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-            <MiniStat label="Нужен полив" value={result.irrigate ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconCheck size={13} color="var(--color-normal)" />Да</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconX size={13} color="var(--color-anomaly)" />Нет</span>} color={result.irrigate ? 'var(--color-normal)' : 'var(--color-anomaly)'} />
-            {result.irrigate && <MiniStat label="Объём" value={`${result.amount_mm} мм`} />}
-            {result.when && <MiniStat label="Дата" value={result.when} />}
-            {result.rain_next_days_mm != null && <MiniStat label="Осадки 2–3 дня" value={`${result.rain_next_days_mm} мм`} />}
-          </div>
-          {result.reason && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>{result.reason}</div>}
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
