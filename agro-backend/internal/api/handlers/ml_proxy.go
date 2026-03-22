@@ -48,8 +48,7 @@ func GetDistricts(w http.ResponseWriter, r *http.Request) {
 // @Failure      502       {object}  map[string]string
 // @Router       /api/v1/predict/forecast [get]
 func GetForecast(w http.ResponseWriter, r *http.Request) {
-	district := r.URL.Query().Get("district")
-	proxyGet(w, fmt.Sprintf("%s/predict/forecast?district=%s", mlHost1(), district))
+	proxyGet(w, fmt.Sprintf("%s/predict/forecast?%s", mlHost1(), r.URL.RawQuery))
 }
 
 // PredictManual godoc
