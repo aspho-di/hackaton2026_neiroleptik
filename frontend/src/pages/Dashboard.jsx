@@ -172,6 +172,14 @@ export default function Dashboard() {
   const parts = (user?.name || '').trim().split(' ')
   const firstName = parts.slice(1, 3).join(' ') || 'Агроном'
 
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h >= 5  && h < 12) return 'Доброе утро'
+    if (h >= 12 && h < 18) return 'Добрый день'
+    if (h >= 18 && h < 23) return 'Добрый вечер'
+    return 'Доброй ночи'
+  })()
+
   const [savedFields, setSavedFields] = useState(() => loadSavedFields())
   const [showModal, setShowModal] = useState(false)
 
@@ -245,7 +253,7 @@ export default function Dashboard() {
         {/* Greeting */}
         <div style={{ marginBottom: '20px' }}>
           <h1 className="page-title">
-            Добрый день, {firstName}!
+            {greeting}, {firstName}!
           </h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
             Ростовская область — прогнозы урожайности и рекомендации по поливу
