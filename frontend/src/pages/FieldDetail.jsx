@@ -713,22 +713,30 @@ export default function FieldDetail() {
     const lon = field?.longitude ?? 40.31
 
     async function load() {
+      // Прогноз и погода загружаются независимо.
+      // fetchForecast уже имеет таймаут 8с внутри.
+      // fetchCurrentWeather может зависнуть — даём ей 10с, после чего null.
+      const weatherPromise = Promise.race([
+        fetchCurrentWeather(lat, lon),
+        new Promise(resolve => setTimeout(() => resolve(null), 10000)),
+      ])
+
+      // Сначала грузим прогноз — он критичен для отображения
+      let forecastData = null
       try {
-        const [forecastData, weather] = await Promise.all([
-          fetchForecast(fieldId, lat, lon),
-          fetchCurrentWeather(lat, lon),
-        ])
-        if (!cancelled) {
-          setForecast(forecastData ?? getMockForecastForField(fieldId))
-          setWeatherData(weather)
-          setLoading(false)
-        }
-      } catch {
-        if (!cancelled) {
-          setForecast(getMockForecastForField(fieldId))
-          setLoading(false)
-        }
+        forecastData = await fetchForecast(fieldId, lat, lon)
+      } catch { /* ignore */ }
+
+      if (!cancelled) {
+        setForecast(forecastData ?? getMockForecastForField(fieldId))
+        setLoading(false)  // показываем страницу сразу после прогноза
       }
+
+      // Погода догружается в фоне
+      try {
+        const weather = await weatherPromise
+        if (!cancelled) setWeatherData(weather)
+      } catch { /* погода не критична */ }
     }
 
     load()
