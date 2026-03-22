@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from fetch_weather import fetch_forecast_weather
 
-MODEL_PATH = "../models/yield_model.pkl"
+MODEL_PATH = "models/yield_model.pkl"
 
 FEATURE_COLS = [
     "temp_mean", "temp_max", "temp_min",
