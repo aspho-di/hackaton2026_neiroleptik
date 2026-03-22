@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchFields } from '../api/client'
-import { loadSavedFields } from '../components/AddFieldModal'
+import { loadSavedFields, saveFields } from '../components/AddFieldModal'
 
 // Адаптирует поле из Go-бэкенда к фронтовому формату
 function adaptBackendField(f) {
@@ -33,7 +33,9 @@ export function useFields() {
           // Мержим: бэкенд-поля приоритетны, localStorage-поля добавляем если нет совпадения по field_id
           const backendIds = new Set(backendFields.map(f => f.field_id))
           const onlyLocal  = localFields.filter(f => !backendIds.has(f.field_id))
-          setFields([...backendFields, ...onlyLocal])
+          const merged = [...backendFields, ...onlyLocal]
+          saveFields(merged)   // persist so other pages see all fields immediately
+          setFields(merged)
         } else {
           // Бэк недоступен или вернул пустой массив — только localStorage
           setFields(localFields)

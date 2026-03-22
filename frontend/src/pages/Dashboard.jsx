@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import FieldList from '../components/FieldList'
-import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
+import AddFieldModal, { loadSavedFields, saveFields } from '../components/AddFieldModal'
 import { fetchFields } from '../api/client'
 import { getUser } from '../auth'
 import WheatEmoji from '../components/icons/WheatEmoji'
@@ -200,7 +200,9 @@ export default function Dashboard() {
       setSavedFields(prev => {
         const backendIds = new Set(backendFields.map(f => f.field_id))
         const localOnly  = prev.filter(f => !backendIds.has(f.field_id))
-        return [...backendFields, ...localOnly]
+        const merged = [...backendFields, ...localOnly]
+        saveFields(merged)   // persist so History/Compare see all fields immediately
+        return merged
       })
     }).catch(() => {})
   }, [])

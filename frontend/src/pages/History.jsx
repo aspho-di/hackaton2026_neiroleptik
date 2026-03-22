@@ -4,8 +4,8 @@ import {
   CartesianGrid, ReferenceLine,
   ComposedChart, Bar, Legend,
 } from 'recharts'
-import { loadSavedFields } from '../components/AddFieldModal'
 import { fetchPredictions, fetchSensorData } from '../api/client'
+import { useFields } from '../hooks/useFields'
 import { IconDownload, IconWarning, IconBarChart, IconArrowUp, IconInfo } from '../components/icons/Icons'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -154,8 +154,15 @@ function OblastTooltip({ active, payload, label }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function History() {
-  const allFields = loadSavedFields()
-  const [selectedFieldId, setSelectedFieldId] = useState(() => allFields[0]?.field_id ?? null)
+  const { fields: allFields, loading: fieldsLoading } = useFields()
+  const [selectedFieldId, setSelectedFieldId] = useState(null)
+
+  // Select first field once fields are loaded
+  useEffect(() => {
+    if (selectedFieldId === null && allFields.length > 0) {
+      setSelectedFieldId(allFields[0].field_id)
+    }
+  }, [allFields, selectedFieldId])
   const [predictions,  setPredictions]  = useState([])
   const [predsLoading, setPredsLoading] = useState(false)
   const [backendSensors, setBackendSensors] = useState([])
@@ -264,6 +271,15 @@ export default function History() {
     a.download = `history_${(field?.name ?? 'field').replace(/\s/g, '_')}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (fieldsLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--color-text-muted)', fontSize: 14 }}>
+        Загрузка участков...
+      </div>
+    )
   }
 
   // ── No fields ──────────────────────────────────────────────────────────────

@@ -62,9 +62,12 @@ export function loadSavedFields() {
   }
 }
 
+export function saveFields(fields) {
+  try { localStorage.setItem(FIELDS_KEY, JSON.stringify(fields)) } catch {}
+}
+
 function saveField(field) {
-  const saved = loadSavedFields()
-  try { localStorage.setItem(FIELDS_KEY, JSON.stringify([...saved, field])) } catch {}
+  saveFields([...loadSavedFields(), field])
 }
 
 const inputStyle = {
