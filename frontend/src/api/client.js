@@ -75,14 +75,15 @@ function districtToMLKey(district) {
 // Два источника параллельно:
 //   1. ML :8001 (через Go-прокси) — бинарный классификатор: yield_actual 0|1 + precip
 //   2. Go :8080 /api/v1/predict   — формула по датчикам: yield_prediction (ц/га)
-export async function fetchForecast(field_id, latitude, longitude, district) {
+export async function fetchForecast(field_id, latitude, longitude, district, crop) {
   try {
     const ctrl  = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 8000)
     const mlDistrict = districtToMLKey(district)
+    const mlCrop = crop || 'wheat'
 
     const mlPromise = fetch(
-      `${BASE_URL}/api/v1/predict/forecast?district=${mlDistrict}`,
+      `${BASE_URL}/api/v1/predict/forecast?district=${mlDistrict}&crop=${mlCrop}`,
       { signal: ctrl.signal }
     )
     const goPromise = (field_id && latitude != null && longitude != null)

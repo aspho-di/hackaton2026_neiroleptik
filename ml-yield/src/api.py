@@ -61,9 +61,9 @@ class IrrigationInput(BaseModel):
 
 @app.get("/predict/forecast")
 @app.get("/api/v1/predict/forecast")
-def forecast(district: str = "rostov"):
+def forecast(district: str = "rostov", crop: str = "wheat"):
     """Прогноз по реальной погоде с Open-Meteo. Кэшируется на 10 минут."""
-    cache_key = f"forecast_{district}"
+    cache_key = f"forecast_{district}_{crop}"
     now = time.time()
 
     if cache_key in _cache and now - _cache[cache_key]["ts"] < CACHE_TTL:
@@ -72,7 +72,7 @@ def forecast(district: str = "rostov"):
         result["cached"] = True
         return result
 
-    result = predict_from_forecast(district=district)
+    result = predict_from_forecast(district=district, crop=crop)
     result["cached"] = False
     _cache[cache_key] = {"data": result, "ts": now}
     return result

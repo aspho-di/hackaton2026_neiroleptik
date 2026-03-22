@@ -18,12 +18,21 @@ def load_model():
     threshold = bundle.get("threshold") or 30.0  # дефолт если None
     return bundle["model"], threshold, bundle.get("cv_accuracy")
 
-def predict_from_forecast(district: str = "rostov") -> dict:
+CROP_THRESHOLDS = {
+    "wheat":     35.0,
+    "corn":      50.0,
+    "sunflower": 22.0,
+    "tomato":   400.0,
+}
+
+def predict_from_forecast(district: str = "rostov", crop: str = "wheat") -> dict:
     """
     Качает прогноз погоды и предсказывает урожайность (0/1).
     district — ключ района из DISTRICTS в fetch_weather.py
+    crop     — тип культуры: wheat, corn, sunflower, tomato
     """
-    model, threshold, cv_acc = load_model()
+    model, model_threshold, cv_acc = load_model()
+    threshold = CROP_THRESHOLDS.get(crop.lower(), model_threshold)
 
     df_forecast = fetch_forecast_weather(days=7, district=district)
 

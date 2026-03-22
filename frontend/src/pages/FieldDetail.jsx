@@ -940,7 +940,7 @@ export default function FieldDetail() {
       // Сначала грузим прогноз — он критичен для отображения
       let forecastData = null
       try {
-        forecastData = await fetchForecast(fieldId, lat, lon, field?.district)
+        forecastData = await fetchForecast(fieldId, lat, lon, field?.district, field?.crop)
       } catch { /* ignore */ }
 
       if (!cancelled) {
