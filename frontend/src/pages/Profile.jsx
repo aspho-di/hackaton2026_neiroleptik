@@ -113,7 +113,11 @@ export default function Profile() {
 
   function handleAvatarUpload(dataUrl) {
     const updated = { ...user, avatar: dataUrl }
-    try { setUser(updated) } catch {}
+    try {
+      setUser(updated)
+      // Persist avatar separately so it survives logout/re-login
+      if (user?.email) localStorage.setItem(`agro_avatar_${user.email}`, dataUrl)
+    } catch {}
     setUserState(updated)
     window.dispatchEvent(new Event('avatar-updated'))
   }
