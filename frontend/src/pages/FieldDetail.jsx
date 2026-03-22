@@ -125,17 +125,27 @@ function StatCard({ icon, label, value, color, bg, hint }) {
 function YieldCard({ forecast, status }) {
   const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, risk_factors, confidence } = forecast
 
-  const isNull   = yield_ctha == null
+  // ВАЖНО: yield_ctha может быть 0 — это валидное значение, не отсутствие данных
+  const hasData  = yield_ctha === 0 || yield_ctha === 1
   const isGood   = yield_ctha === 1
-  const bigColor = isNull ? 'var(--color-text-muted)' : isGood ? 'var(--color-normal)' : 'var(--color-anomaly)'
-  const bgColor  = isNull ? 'var(--color-accent-light)' : isGood ? 'var(--color-accent-light)' : '#fef2f2'
-  const bigLabel = isNull ? '—' : String(yield_ctha)
-  const sublabel = yield_label ?? (isNull ? 'нет данных' : isGood ? 'хороший урожай' : 'низкий урожай')
+  const bigColor = !hasData ? 'var(--color-text-muted)' : isGood ? 'var(--color-normal)' : 'var(--color-anomaly)'
+  const bgColor  = !hasData ? 'var(--color-accent-light)' : isGood ? 'var(--color-accent-light)' : '#fef2f2'
+  const bigLabel = !hasData ? '—' : String(yield_ctha)
+  const sublabel = yield_label
+    ?? (!hasData ? 'загрузка...' : isGood ? 'хороший урожай' : 'низкий урожай')
   const confNum  = typeof confidence === 'number' ? confidence : null
+  const isMock   = forecast._source !== 'ml'
 
   return (
     <div style={{ background: bgColor, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '16px 18px' }}>
-      <div style={{ marginBottom: 4, display: 'flex' }}><WheatEmoji size={20} /></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+        <WheatEmoji size={20} />
+        {isMock && (
+          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontWeight: 600 }}>
+            демо-данные
+          </span>
+        )}
+      </div>
       <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontWeight: 500 }}>
         Прогноз урожайности
       </div>
@@ -149,7 +159,7 @@ function YieldCard({ forecast, status }) {
           <div style={{ fontSize: 15, fontWeight: 700, color: bigColor, fontFamily: 'Montserrat, sans-serif' }}>
             {sublabel}
           </div>
-          {!isNull && (
+          {hasData && (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
               {isGood ? 'урожаемо' : 'не урожаемо'}
             </div>

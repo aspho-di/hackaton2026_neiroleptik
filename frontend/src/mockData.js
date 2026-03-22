@@ -63,15 +63,16 @@ export const MOCK_ALERTS = [
 // yield_ctha = 0 (низкий урожай) или 1 (хороший урожай)
 export const MOCK_FORECAST = {
   field_id: 45,
-  yield_ctha: 1,                       // бинарный прогноз ML
+  yield_ctha: 1,
   yield_label: "хороший",
-  yield_threshold: 35,                 // порог бинаризации в ц/га
+  yield_threshold: 35,
   model_cv_accuracy: 0.82,
   confidence: 0.87,
   status: "normal",
   message: null,
   precip_forecast_7days: [2.1, 0, 5.4, 0, 0, 12.3, 1.0],
   weather_summary: { avg_temp: 22.1, total_precip_mm: 18.0, hot_days: 2, water_balance: -10 },
+  _source: 'mock',
 }
 
 // Мок ответа POST /recommend/irrigation — структура совпадает с реальным API (:8002)
@@ -87,7 +88,7 @@ export const MOCK_IRRIGATION = {
 
 export const MOCK_FORECAST_ANOMALY = {
   field_id: 7,
-  yield_ctha: 0,                       // бинарный прогноз: 0 = низкий
+  yield_ctha: 0,
   yield_label: "низкий",
   yield_threshold: 35,
   model_cv_accuracy: 0.82,
@@ -96,11 +97,12 @@ export const MOCK_FORECAST_ANOMALY = {
   message: "Обнаружена аномалия: критически низкая влажность почвы. Требуется срочный полив.",
   precip_forecast_7days: [0, 0, 0, 0, 0, 0, 0.3],
   weather_summary: { avg_temp: 35.1, total_precip_mm: 0.3, hot_days: 7, water_balance: -82 },
+  _source: 'mock',
 }
 
 export const MOCK_FORECAST_WARNING = {
   field_id: 12,
-  yield_ctha: 0,                       // бинарный прогноз: 0 = низкий
+  yield_ctha: 0,
   yield_label: "низкий",
   yield_threshold: 35,
   model_cv_accuracy: 0.82,
@@ -109,6 +111,7 @@ export const MOCK_FORECAST_WARNING = {
   message: "Прогноз ненадёжен: недостаточно данных датчиков.",
   precip_forecast_7days: [0.5, 0, 1.2, 0, 3.1, 0, 0],
   weather_summary: { avg_temp: 31.8, total_precip_mm: 4.8, hot_days: 5, water_balance: -62 },
+  _source: 'mock',
 }
 
 export function getMockForecastForField(fieldId) {

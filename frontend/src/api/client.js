@@ -55,55 +55,57 @@ export async function deleteField(id) {
 // Ответ ML: { yield_actual: 0|1, yield_label, confidence_proba, precip_forecast_7days: [{date,precipitation_sum},...] }
 export async function fetchForecast(field_id, latitude, longitude) {
   try {
-    // Определяем район по координатам (приближённо для Ростовской области)
-    // По умолчанию — rostov (центр области)
     const district = 'rostov'
-    const res = await fetch(`${BASE_URL}/api/v1/predict/forecast?district=${district}`)
-    if (!res.ok) throw new Error()
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 8000)
+    const res = await fetch(`${BASE_URL}/api/v1/predict/forecast?district=${district}`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
 
-    // ML модель возвращает бинарный прогноз 0/1
-    const yieldActual   = data.yield_actual ?? null     // 0 или 1
-    const yieldLabel    = data.yield_label ?? null      // "хороший" / "низкий"
-    const confidenceRaw = data.confidence_proba ?? 0   // 0..1
+    // yield_actual может быть 0 (не null!) — используем явную проверку
+    const yieldActual = (data.yield_actual === 0 || data.yield_actual === 1)
+      ? data.yield_actual
+      : null
+
+    const yieldLabel    = data.yield_label ?? null
+    const confidenceRaw = typeof data.confidence_proba === 'number' ? data.confidence_proba : 0.5
 
     // Нормализуем precip_forecast_7days: ML возвращает [{date, precipitation_sum}, ...]
-    // Фронт ожидает массив чисел [2.1, 0, 5.4, ...]
     let precipArr = null
-    if (Array.isArray(data.precip_forecast_7days)) {
-      if (data.precip_forecast_7days.length > 0 && typeof data.precip_forecast_7days[0] === 'object') {
-        precipArr = data.precip_forecast_7days.map(d => d.precipitation_sum ?? 0)
+    if (Array.isArray(data.precip_forecast_7days) && data.precip_forecast_7days.length > 0) {
+      const first = data.precip_forecast_7days[0]
+      if (first !== null && typeof first === 'object') {
+        precipArr = data.precip_forecast_7days.map(d => Number(d.precipitation_sum ?? 0))
       } else {
-        precipArr = data.precip_forecast_7days
+        precipArr = data.precip_forecast_7days.map(Number)
       }
     }
 
-    const isAnomaly = false  // ML модель не возвращает is_anomaly напрямую
-    const status    = confidenceRaw < 0.6 ? 'warning' : 'normal'
-
-    // Формируем weather_summary из ML-ответа
     const ws = data.weather_summary ?? null
 
     return {
-      yield_ctha:                yieldActual,         // 0 или 1 (бинарный прогноз)
-      yield_label:               yieldLabel,          // "хороший" / "низкий"
+      yield_ctha:                yieldActual,
+      yield_label:               yieldLabel,
       yield_threshold:           data.yield_threshold_centner_per_ha ?? null,
       model_cv_accuracy:         data.model_cv_accuracy ?? null,
       confidence:                confidenceRaw,
       confidence_label:          confidenceRaw >= 0.7 ? 'Высокая' : 'Низкая',
-      anomaly_flag:              isAnomaly,
+      anomaly_flag:              false,
       irrigation_recommendation: null,
       warning:                   null,
-      status,
+      status:                    confidenceRaw < 0.6 ? 'warning' : 'normal',
       precip_forecast_7days:     precipArr,
       weather_summary:           ws ? {
-        avg_temp:        ws.avg_temp,
-        total_precip_mm: ws.total_precip_mm,
-        hot_days:        ws.hot_days,
+        avg_temp:        ws.avg_temp ?? null,
+        total_precip_mm: ws.total_precip_mm ?? null,
+        hot_days:        ws.hot_days ?? null,
         water_balance:   null,
       } : null,
+      _source: 'ml',
     }
   } catch {
+    // ML недоступен — возвращаем null, FieldDetail подставит мок
     return null
   }
 }
