@@ -25,15 +25,19 @@ function DataSourcesWidget() {
   const checkAll = useCallback(async () => {
     setStatuses(Object.fromEntries(DATA_SOURCES.map(s => [s.key, 'checking'])))
     const results = await Promise.all(DATA_SOURCES.map(async s => {
+      // ML-хелс проксируется через Go (Go пингует оба ML), даём 10 сек
+      const timeout = s.key === 'ml' ? 10000 : 3000
       try {
         const ctrl  = new AbortController()
-        const timer = setTimeout(() => ctrl.abort(), 3000)
+        const timer = setTimeout(() => ctrl.abort(), timeout)
         const res   = await fetch(s.url, { signal: ctrl.signal, method: 'GET' })
         clearTimeout(timer)
         if (s.key === 'ml' && res.ok) {
-          // ml/health возвращает { status, ml_yield_service, ml_irrigation_service }
+          // ml/health возвращает { status:'ok'|'degraded', ml_yield_service, ml_irrigation_service }
           const data = await res.json()
-          return [s.key, data.status === 'ok' ? 'online' : 'offline']
+          if (data.status === 'ok') return [s.key, 'online']
+          if (data.status === 'degraded') return [s.key, 'degraded']
+          return [s.key, 'offline']
         }
         return [s.key, res.ok || res.status < 500 ? 'online' : 'offline']
       } catch {
@@ -46,12 +50,12 @@ function DataSourcesWidget() {
 
   useEffect(() => { checkAll() }, [checkAll])
 
-  const allOnline  = Object.values(statuses).every(s => s === 'online')
-  const anyOffline = Object.values(statuses).some(s => s === 'offline')
-  const checking   = Object.values(statuses).some(s => s === 'checking')
+  const anyOffline  = Object.values(statuses).some(s => s === 'offline')
+  const anyDegraded = Object.values(statuses).some(s => s === 'degraded')
+  const checking    = Object.values(statuses).some(s => s === 'checking')
 
-  const overallColor = checking ? '#f59e0b' : anyOffline ? '#ef4444' : '#4caf50'
-  const overallLabel = checking ? 'Проверка...' : anyOffline ? 'Нет связи' : 'Все активны'
+  const overallColor = checking ? '#f59e0b' : anyOffline ? '#ef4444' : anyDegraded ? '#f59e0b' : '#4caf50'
+  const overallLabel = checking ? 'Проверка...' : anyOffline ? 'Нет связи' : anyDegraded ? 'Частично' : 'Все активны'
 
   return (
     <div style={{
@@ -92,6 +96,8 @@ function DataSourcesWidget() {
                   ? <IconCheck size={11} color="var(--color-normal)" />
                   : s === 'offline'
                   ? <IconX size={11} color="var(--color-anomaly)" />
+                  : s === 'degraded'
+                  ? <span style={{ color: 'var(--color-warning)', fontSize: 10, fontWeight: 700 }}>~</span>
                   : <span style={{ color: 'var(--color-warning)', fontSize: 11, fontWeight: 600 }}>…</span>}
               </span>
             </span>
