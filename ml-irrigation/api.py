@@ -21,7 +21,7 @@ from typing import Any
 import os
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AwareDatetime, model_validator
 from sqlalchemy.orm import Session
 
 import crud
@@ -30,14 +30,6 @@ from irrigation import recommend_irrigation
 from validate import validate_sensor_data
 
 FORECAST_URL = os.getenv("FORECAST_SERVICE_URL", "http://localhost:8001/predict/forecast")
-
-# FIX B3: базовая проверка URL при старте модуля — отсутствие схемы
-# обнаруживается сразу, а не при первом реальном запросе с невнятной 502.
-if not FORECAST_URL.startswith(("http://", "https://")):
-    raise RuntimeError(
-        f"FORECAST_SERVICE_URL имеет некорректный формат: {FORECAST_URL!r}. "
-        "Ожидается URL вида http://host:port/path"
-    )
 
 
 # ── Lifespan: инициализация БД при старте ─────────────────────────────────────
@@ -83,7 +75,7 @@ class SensorPayload(BaseModel):
         description="Влажность воздуха, %")
     wind_speed: float = Field(..., ge=0.0, examples=[3.5],
         description="Скорость ветра, м/с")
-    timestamp: datetime = Field(
+    timestamp: AwareDatetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         examples=["2026-03-21T14:35:00Z"],
         description="Время замера с датчика (ISO 8601 UTC)",
@@ -107,6 +99,15 @@ class CreateProfileRequest(BaseModel):
     heat_coeff: float = Field(0.4, ge=0)
     description: str | None = None
 
+    @model_validator(mode="after")
+    def check_moisture_range(self) -> "CreateProfileRequest":
+        if self.moisture_threshold_low >= self.moisture_threshold_high:
+            raise ValueError(
+                f"moisture_threshold_low ({self.moisture_threshold_low}) "
+                f"должен быть меньше moisture_threshold_high ({self.moisture_threshold_high})"
+            )
+        return self
+
 
 class PatchProfileRequest(BaseModel):
     changed_by: str = Field(..., examples=["Петров В.С."])
@@ -121,10 +122,31 @@ class PatchProfileRequest(BaseModel):
     display_name: str | None = None
     description: str | None = None
 
+    @model_validator(mode="after")
+    def check_moisture_range(self) -> "PatchProfileRequest":
+        low = self.moisture_threshold_low
+        high = self.moisture_threshold_high
+        if low is not None and high is not None and low >= high:
+            raise ValueError(
+                f"moisture_threshold_low ({low}) "
+                f"должен быть меньше moisture_threshold_high ({high})"
+            )
+        return self
+
 
 # ── Вспомогательные функции ───────────────────────────────────────────────────
 
 async def _get_forecast() -> list[dict[str, Any]]:
+    # Проверка формата URL здесь, а не на уровне модуля — иначе некорректный
+    # FORECAST_SERVICE_URL роняет весь старт приложения (nginx получает 502/504
+    # и отдаёт клиенту 403). Здесь при плохом URL просто возвращаем пустой список.
+    if not FORECAST_URL.startswith(("http://", "https://")):
+        print(
+            f"[warning] FORECAST_SERVICE_URL некорректен: {FORECAST_URL!r}. "
+            "Прогноз осадков пропущен."
+        )
+        return []
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             resp = await client.get(FORECAST_URL)
@@ -136,15 +158,14 @@ async def _get_forecast() -> list[dict[str, Any]]:
             # Читаем тело внутри with-блока, пока соединение ещё открыто
             data = resp.json()
         except httpx.HTTPStatusError:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Сервис прогноза вернул {status_code}: {FORECAST_URL}",
-            )
+            # Сервис ответил с ошибкой — продолжаем без прогноза, не роняем запрос.
+            print(f"[warning] Сервис прогноза вернул {status_code}: {FORECAST_URL}")
+            return []
         except httpx.RequestError as exc:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Нет соединения с сервисом прогноза ({FORECAST_URL}): {exc}",
-            )
+            # Сервис недоступен (localhost:8001 не поднят и т.п.) — не 502 клиенту.
+            print(f"[warning] Нет соединения с сервисом прогноза ({FORECAST_URL}): {exc}")
+            return []
+
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
@@ -313,6 +334,7 @@ async def validate(
     if profile is None:
         return {
             "status": "anomaly",
+            "is_anomaly": True,
             "confidence": "low",
             "anomalies": [
                 f"crop_type: профиль культуры «{payload.crop_type}» не найден в БД"
@@ -365,6 +387,8 @@ async def recommend(
         precip_forecast_7days=forecast,
         profile=profile.to_dict(),
         today=date.today(),
+        humidity_air=payload.humidity_air,
+        wind_speed=payload.wind_speed,
     )
 
     return {

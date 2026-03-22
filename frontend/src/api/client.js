@@ -87,12 +87,30 @@ export async function fetchForecast(field_id, latitude, longitude) {
       goIrrigation = goData?.prediction?.irrigation_recommendation ?? null
     }
 
-    // yield_actual может быть 0 (не null!) — используем явную проверку
-    const yieldActual   = (data.yield_actual === 0 || data.yield_actual === 1) ? data.yield_actual : null
-    const yieldLabel    = data.yield_label ?? null
-    const confidenceRaw = typeof data.confidence_proba === 'number' ? data.confidence_proba : 0.5
+    // ── Поддержка двух форматов ML-ответа ────────────────────────────────────
+    // Формат A (новый, deployed): yield_prediction_centner_per_ha (float) + confidence ("high"/"low")
+    // Формат B (репо):            yield_actual (0/1) + confidence_proba (float 0-1)
 
-    // Нормализуем precip_forecast_7days: ML возвращает [{date, precipitation_sum}, ...]
+    const yieldFloat = data.yield_prediction_centner_per_ha ?? null  // ц/га из нового формата
+    const DEFAULT_THRESHOLD = 35  // порог урожайности Ростовской области
+    const threshold = data.yield_threshold_centner_per_ha ?? (yieldFloat != null ? DEFAULT_THRESHOLD : null)
+
+    // Бинарный результат: берём из поля или вычисляем из float
+    const rawActual = data.yield_actual ?? data.yield_ctha
+    let yieldActual = rawActual != null ? (Number(rawActual) >= 0.5 ? 1 : 0) : null
+    if (yieldActual === null && yieldFloat != null) {
+      yieldActual = yieldFloat >= DEFAULT_THRESHOLD ? 1 : 0
+    }
+
+    // Метка: берём из поля или выводим из бинарного
+    const yieldLabel = data.yield_label ?? (yieldActual === 1 ? 'хороший' : yieldActual === 0 ? 'низкий' : null)
+
+    // Уверенность: float из нового формата ("high"→0.85, "low"→0.45) или числовое
+    const confidenceRaw = typeof data.confidence_proba === 'number'
+      ? data.confidence_proba
+      : data.confidence === 'high' ? 0.85 : data.confidence === 'low' ? 0.45 : 0.5
+
+    // Нормализуем precip_forecast_7days: [{date, precipitation_sum}, ...] или [float, ...]
     let precipArr = null
     if (Array.isArray(data.precip_forecast_7days) && data.precip_forecast_7days.length > 0) {
       const first = data.precip_forecast_7days[0]
@@ -104,16 +122,15 @@ export async function fetchForecast(field_id, latitude, longitude) {
     const ws = data.weather_summary ?? null
 
     return {
-      // ML бинарный классификатор
-      yield_ctha:            yieldActual,           // 0 или 1
-      yield_label:           yieldLabel,            // "хороший" | "низкий"
-      yield_threshold:       data.yield_threshold_centner_per_ha ?? null,
+      yield_ctha:            yieldActual,    // 0 или 1 (бинарный)
+      yield_ctha_float:      yieldFloat,     // реальные ц/га если ML вернул float
+      yield_label:           yieldLabel,
+      yield_threshold:       threshold,
       model_cv_accuracy:     data.model_cv_accuracy ?? null,
       confidence:            confidenceRaw,
       confidence_label:      confidenceRaw >= 0.7 ? 'Высокая' : 'Низкая',
-      // Go формула (ц/га) — независимая от ML оценка
-      yield_formula_ctha:    goYield,               // напр. 4.2 ц/га
-      irrigation_recommendation: goIrrigation,      // мм
+      yield_formula_ctha:    goYield,
+      irrigation_recommendation: goIrrigation,
       anomaly_flag:          false,
       warning:               null,
       status:                confidenceRaw < 0.6 ? 'warning' : 'normal',
