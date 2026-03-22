@@ -365,6 +365,8 @@ async def recommend(
         precip_forecast_7days=forecast,
         profile=profile.to_dict(),
         today=date.today(),
+        humidity_air=payload.humidity_air,
+        wind_speed=payload.wind_speed,
     )
 
     return {

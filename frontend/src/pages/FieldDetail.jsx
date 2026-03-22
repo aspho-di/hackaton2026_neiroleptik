@@ -123,20 +123,19 @@ function StatCard({ icon, label, value, color, bg, hint }) {
 }
 
 // ── YieldCard ─────────────────────────────────────────────────────────────────
-// ML-модель возвращает бинарный прогноз: yield_ctha = 0 (низкий) или 1 (хороший)
 function YieldCard({ forecast, status }) {
   const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, risk_factors, confidence, yield_formula_ctha } = forecast
 
-  // ВАЖНО: yield_ctha может быть 0 — это валидное значение, не отсутствие данных
-  const hasData  = yield_ctha === 0 || yield_ctha === 1
-  const isGood   = yield_ctha === 1
-  const bigColor = !hasData ? 'var(--color-text-muted)' : isGood ? 'var(--color-normal)' : 'var(--color-anomaly)'
-  const bgColor  = !hasData ? 'var(--color-accent-light)' : isGood ? 'var(--color-accent-light)' : '#fef2f2'
-  const bigLabel = !hasData ? '—' : String(yield_ctha)
-  const sublabel = yield_label
-    ?? (!hasData ? 'загрузка...' : isGood ? 'хороший урожай' : 'низкий урожай')
+  const hasML    = yield_ctha === 0 || yield_ctha === 1
+  const isGood   = hasML ? yield_ctha === 1 : null
   const confNum  = typeof confidence === 'number' ? confidence : null
   const isMock   = forecast._source !== 'ml'
+
+  // Primary display: Go formula ц/га if available, otherwise ML binary verdict
+  const hasFormula = yield_formula_ctha != null
+  const accentColor = isGood === false ? 'var(--color-anomaly)' : 'var(--color-normal)'
+  const bgColor     = isGood === false ? '#fef2f2' : 'var(--color-accent-light)'
+  const mlLabel     = yield_label ?? (isGood ? 'хороший урожай' : isGood === false ? 'низкий урожай' : '—')
 
   return (
     <div style={{ background: bgColor, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '16px 18px' }}>
@@ -148,31 +147,53 @@ function YieldCard({ forecast, status }) {
           </span>
         )}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontWeight: 500 }}>
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontWeight: 500 }}>
         Прогноз урожайности
       </div>
 
-      {/* Большое 0 или 1 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-        <div style={{ fontSize: 60, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: bigColor, lineHeight: 1 }}>
-          {bigLabel}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: bigColor, fontFamily: 'Montserrat, sans-serif' }}>
-            {sublabel}
+      {hasFormula ? (
+        /* ── Главный блок: расчётная урожайность ц/га ── */
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 52, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: accentColor, lineHeight: 1 }}>
+              {yield_formula_ctha}
+            </span>
+            <span style={{ fontSize: 18, fontWeight: 600, color: accentColor, fontFamily: 'Montserrat, sans-serif' }}>ц/га</span>
           </div>
-          {hasData && (
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-              {isGood ? 'урожаемо' : 'не урожаемо'}
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>расчётная урожайность по датчикам</div>
+          {hasML && (
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 10,
+                background: isGood ? 'rgba(76,175,80,0.12)' : 'rgba(239,68,68,0.12)',
+                color: isGood ? 'var(--color-normal)' : 'var(--color-anomaly)',
+              }}>
+                ML: {mlLabel}
+              </span>
+              {yield_threshold != null && (
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                  порог {yield_threshold} ц/га
+                </span>
+              )}
             </div>
           )}
         </div>
-      </div>
-
-      {/* Порог бинаризации */}
-      {yield_threshold != null && (
-        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 10, padding: '6px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 6 }}>
-          Порог: ≥ <b style={{ color: 'var(--color-text)' }}>{yield_threshold} ц/га</b> → 1 (урожаемо)
+      ) : (
+        /* ── Главный блок: только ML вердикт ── */
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <span style={{
+              fontSize: 28, fontWeight: 700, fontFamily: 'Montserrat, sans-serif',
+              color: isGood === null ? 'var(--color-text-muted)' : accentColor,
+            }}>
+              {mlLabel}
+            </span>
+          </div>
+          {yield_threshold != null && (
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+              порог: ≥ <b style={{ color: 'var(--color-text)' }}>{yield_threshold} ц/га</b>
+            </div>
+          )}
         </div>
       )}
 
@@ -200,14 +221,6 @@ function YieldCard({ forecast, status }) {
       {model_cv_accuracy != null && (
         <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>
           Точность модели (CV): <b style={{ color: 'var(--color-text)' }}>{Math.round(model_cv_accuracy * 100)}%</b>
-        </div>
-      )}
-
-      {/* Расчётная урожайность от Go-формулы */}
-      {yield_formula_ctha != null && (
-        <div style={{ marginTop: 8, padding: '6px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 6, fontSize: 12, color: 'var(--color-text-muted)' }}>
-          Расчётная: <b style={{ color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif' }}>{yield_formula_ctha} ц/га</b>
-          <span style={{ marginLeft: 6, fontSize: 10 }}>(по датчикам)</span>
         </div>
       )}
 
