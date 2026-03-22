@@ -124,10 +124,13 @@ function SensorTooltip({ active, payload, label }) {
 function PredTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload
+  const yieldVal = d?.yield_ctha
+  const yieldColor = yieldVal === 1 ? '#4caf50' : yieldVal === 0 ? '#ef4444' : 'var(--color-text-muted)'
+  const yieldText  = yieldVal === 1 ? '1 — урожаемо' : yieldVal === 0 ? '0 — не урожаемо' : '—'
   return (
     <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
       <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
-      <div style={{ color: '#4caf50' }}>Урожайность: <b>{d?.yield_ctha} ц/га</b></div>
+      <div style={{ color: yieldColor, fontWeight: 600 }}>Урожаемость: {yieldText}</div>
       {d?.confidence != null && (
         <div style={{ color: 'var(--color-text-muted)' }}>Уверенность: {Math.round(d.confidence * 100)}%</div>
       )}
@@ -379,10 +382,13 @@ export default function History() {
           color="var(--color-text)"
         />
         <StatCard
-          label="Средний прогноз урожая"
-          value={avgYield != null ? `${avgYield} ц/га` : '—'}
-          sub={predictions.length > 0 ? `по ${predictions.length} прогнозам` : 'нет данных'}
-          color={avgYield != null ? 'var(--color-normal)' : 'var(--color-text-muted)'}
+          label="Доля урожаемых прогнозов"
+          value={(() => {
+            const good = predictions.filter(p => p.yield_prediction === 1).length
+            return predictions.length > 0 ? `${good} / ${predictions.length}` : '—'
+          })()}
+          sub={predictions.length > 0 ? `бинарный прогноз ML (0/1)` : 'нет данных'}
+          color={predictions.length > 0 ? 'var(--color-normal)' : 'var(--color-text-muted)'}
         />
         <StatCard
           label="Аномалии в прогнозах"
@@ -408,10 +414,10 @@ export default function History() {
       {/* Prediction history chart */}
       <div style={card}>
         <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 2 }}>
-          История прогнозов урожайности
+          История прогнозов урожаемости
         </div>
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 16 }}>
-          Каждая точка — реальный прогноз из системы. Разрыв = нет данных за период.
+          Бинарный прогноз ML: <b style={{ color: '#4caf50' }}>1 = урожаемо</b>, <b style={{ color: '#ef4444' }}>0 = не урожаемо</b>. Каждая точка — реальный прогноз.
         </div>
 
         {predsLoading ? (
@@ -419,9 +425,9 @@ export default function History() {
             Загрузка...
           </div>
         ) : predChartData.length === 0 ? (
-          <EmptyBlock text="Нет прогнозов для этого участка. Откройте карточку поля и нажмите «Получить прогноз» — данные появятся здесь." />
+          <EmptyBlock text="Нет прогнозов для этого участка. Откройте карточку поля — данные появятся здесь." />
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={predChartData} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis
@@ -431,35 +437,32 @@ export default function History() {
                 interval="preserveStartEnd"
               />
               <YAxis
-                tick={{ fontSize: 11, fill: '#6b7c6e' }} unit=" ц"
-                width={48} axisLine={false} tickLine={false}
-                domain={['auto', 'auto']}
+                tick={{ fontSize: 11, fill: '#6b7c6e' }}
+                width={40} axisLine={false} tickLine={false}
+                domain={[-0.1, 1.1]}
+                ticks={[0, 1]}
+                tickFormatter={v => v === 1 ? '1 ✓' : v === 0 ? '0 ✗' : ''}
               />
               <Tooltip content={<PredTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1 }} />
-              {avgYield != null && (
-                <ReferenceLine
-                  y={avgYield} stroke="#9ca3af" strokeDasharray="5 5" strokeWidth={1.5}
-                  label={{ value: `сред. ${avgYield}`, position: 'insideBottomRight', fontSize: 11, fill: '#9ca3af' }}
-                />
-              )}
+              <ReferenceLine y={0.5} stroke="#9ca3af" strokeDasharray="4 4" strokeWidth={1} />
               <Line
-                type="monotone" dataKey="yield_ctha"
-                stroke="#4caf50" strokeWidth={2.5}
+                type="stepAfter" dataKey="yield_ctha"
+                stroke="#4caf50" strokeWidth={2}
                 dot={({ cx, cy, payload }) => (
-                  <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={5}
-                    fill={payload.is_anomaly ? '#ef4444' : '#4caf50'}
+                  <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={6}
+                    fill={payload.yield_ctha === 1 ? '#4caf50' : payload.yield_ctha === 0 ? '#ef4444' : '#9ca3af'}
                     stroke="#fff" strokeWidth={2} />
                 )}
-                activeDot={{ r: 7 }}
+                activeDot={{ r: 8 }}
                 connectNulls={false}
                 isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
         )}
-        {predChartData.some(d => d.is_anomaly) && (
+        {predChartData.some(d => d.yield_ctha === 0) && (
           <div style={{ fontSize: 11, color: '#ef4444', marginTop: 8 }}>
-            <span style={{ fontWeight: 700 }}>●</span> Красные точки — прогнозы с флагом аномалии
+            <span style={{ fontWeight: 700 }}>●</span> Красные точки — прогноз 0 (не урожаемо)
           </div>
         )}
       </div>

@@ -59,28 +59,26 @@ export const MOCK_ALERTS = [
   },
 ]
 
-// Мок ответа GET /predict/forecast — структура точно совпадает с реальным API
+// Мок ответа GET /api/v1/predict/forecast — бинарный формат ML-модели (0/1)
+// yield_ctha = 0 (низкий урожай) или 1 (хороший урожай)
 export const MOCK_FORECAST = {
   field_id: 45,
-  yield_ctha: 38.4,
-  yield_min: 34.1,
-  yield_max: 42.7,
-  risk_factors: [
-    { label: "Дефицит осадков", severity: "warning" },
-    { label: "Жаркие дни >30°C", severity: "warning" },
-  ],
-  confidence: "high",
+  yield_ctha: 1,                       // бинарный прогноз ML
+  yield_label: "хороший",
+  yield_threshold: 35,                 // порог бинаризации в ц/га
+  model_cv_accuracy: 0.82,
+  confidence: 0.87,
   status: "normal",
   message: null,
   precip_forecast_7days: [2.1, 0, 5.4, 0, 0, 12.3, 1.0],
   weather_summary: { avg_temp: 22.1, total_precip_mm: 18.0, hot_days: 2, water_balance: -10 },
 }
 
-// Мок ответа POST /recommend/irrigation — структура точно совпадает с реальным API
+// Мок ответа POST /recommend/irrigation — структура совпадает с реальным API (:8002)
 export const MOCK_IRRIGATION = {
-  irrigation_needed: true,
+  irrigate: true,
   amount_mm: 25,
-  next_date: "2024-06-15",
+  when: "2024-06-15",
   confidence: "high",
   status: "normal",
   message: null,
@@ -89,15 +87,11 @@ export const MOCK_IRRIGATION = {
 
 export const MOCK_FORECAST_ANOMALY = {
   field_id: 7,
-  yield_ctha: 18.2,
-  yield_min: 10.5,
-  yield_max: 25.9,
-  risk_factors: [
-    { label: "Критическая засуха", severity: "critical" },
-    { label: "Аномалия датчика влажности", severity: "critical" },
-    { label: "Температура >35°C", severity: "warning" },
-  ],
-  confidence: "low",
+  yield_ctha: 0,                       // бинарный прогноз: 0 = низкий
+  yield_label: "низкий",
+  yield_threshold: 35,
+  model_cv_accuracy: 0.82,
+  confidence: 0.35,
   status: "anomaly",
   message: "Обнаружена аномалия: критически низкая влажность почвы. Требуется срочный полив.",
   precip_forecast_7days: [0, 0, 0, 0, 0, 0, 0.3],
@@ -106,14 +100,11 @@ export const MOCK_FORECAST_ANOMALY = {
 
 export const MOCK_FORECAST_WARNING = {
   field_id: 12,
-  yield_ctha: 29.1,
-  yield_min: 23.4,
-  yield_max: 34.8,
-  risk_factors: [
-    { label: "Высокая температура воздуха", severity: "warning" },
-    { label: "Недостаточно осадков", severity: "warning" },
-  ],
-  confidence: "low",
+  yield_ctha: 0,                       // бинарный прогноз: 0 = низкий
+  yield_label: "низкий",
+  yield_threshold: 35,
+  model_cv_accuracy: 0.82,
+  confidence: 0.55,
   status: "normal",
   message: "Прогноз ненадёжен: недостаточно данных датчиков.",
   precip_forecast_7days: [0.5, 0, 1.2, 0, 3.1, 0, 0],

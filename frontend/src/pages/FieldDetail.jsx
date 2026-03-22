@@ -121,43 +121,78 @@ function StatCard({ icon, label, value, color, bg, hint }) {
 }
 
 // ── YieldCard ─────────────────────────────────────────────────────────────────
+// ML-модель возвращает бинарный прогноз: yield_ctha = 0 (низкий) или 1 (хороший)
 function YieldCard({ forecast, status }) {
-  const { yield_ctha, yield_min, yield_max, risk_factors } = forecast
-  const barColor = status === 'anomaly' ? 'var(--color-anomaly)' : status === 'warning' ? 'var(--color-warning)' : 'var(--color-normal)'
-  const hasRange = yield_min != null && yield_max != null
+  const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, risk_factors, confidence } = forecast
 
-  const trackMax = hasRange ? yield_max * 1.25 : yield_ctha * 1.25
-  const minPct   = hasRange ? (yield_min / trackMax) * 100 : 0
-  const maxPct   = hasRange ? (yield_max / trackMax) * 100 : 80
-  const dotPct   = (yield_ctha / trackMax) * 100
+  const isNull   = yield_ctha == null
+  const isGood   = yield_ctha === 1
+  const bigColor = isNull ? 'var(--color-text-muted)' : isGood ? 'var(--color-normal)' : 'var(--color-anomaly)'
+  const bgColor  = isNull ? 'var(--color-accent-light)' : isGood ? 'var(--color-accent-light)' : '#fef2f2'
+  const bigLabel = isNull ? '—' : String(yield_ctha)
+  const sublabel = yield_label ?? (isNull ? 'нет данных' : isGood ? 'хороший урожай' : 'низкий урожай')
+  const confNum  = typeof confidence === 'number' ? confidence : null
 
   return (
-    <div style={{ background: 'var(--color-accent-light)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '16px 18px' }}>
+    <div style={{ background: bgColor, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '16px 18px' }}>
       <div style={{ marginBottom: 4, display: 'flex' }}><WheatEmoji size={20} /></div>
-      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, fontWeight: 500 }}>Прогноз урожайности</div>
-      <div style={{ fontSize: 26, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-normal)' }}>{yield_ctha} ц/га</div>
-      {hasRange && (
-        <>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2, marginBottom: 10 }}>
-            от {yield_min} до {yield_max} ц/га
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontWeight: 500 }}>
+        Прогноз урожайности
+      </div>
+
+      {/* Большое 0 или 1 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
+        <div style={{ fontSize: 60, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: bigColor, lineHeight: 1 }}>
+          {bigLabel}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: bigColor, fontFamily: 'Montserrat, sans-serif' }}>
+            {sublabel}
           </div>
-          <div style={{ position: 'relative', height: 8, background: 'var(--color-border)', borderRadius: 4, marginBottom: 12 }}>
-            <div style={{
-              position: 'absolute', left: `${minPct}%`, width: `${maxPct - minPct}%`,
-              height: '100%', background: barColor, borderRadius: 4, opacity: 1,
-            }} />
-            <div style={{
-              position: 'absolute', left: `${dotPct}%`, top: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 14, height: 14, borderRadius: '50%',
-              background: barColor, border: '2px solid var(--color-surface)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-            }} />
-          </div>
-        </>
+          {!isNull && (
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+              {isGood ? 'урожаемо' : 'не урожаемо'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Порог бинаризации */}
+      {yield_threshold != null && (
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 10, padding: '6px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 6 }}>
+          Порог: ≥ <b style={{ color: 'var(--color-text)' }}>{yield_threshold} ц/га</b> → 1 (урожаемо)
+        </div>
       )}
+
+      {/* Уверенность модели */}
+      {confNum != null && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 4 }}>
+            <span>Уверенность модели</span>
+            <span style={{ fontWeight: 700, color: confNum >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)' }}>
+              {Math.round(confNum * 100)}%
+            </span>
+          </div>
+          <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: 3,
+              width: `${Math.round(confNum * 100)}%`,
+              background: confNum >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)',
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* Точность CV */}
+      {model_cv_accuracy != null && (
+        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+          Точность модели (CV): <b style={{ color: 'var(--color-text)' }}>{Math.round(model_cv_accuracy * 100)}%</b>
+        </div>
+      )}
+
       {risk_factors?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
           {risk_factors.map((rf, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
               <IconWarning size={13} color={rf.severity === 'critical' ? 'var(--color-anomaly)' : 'var(--color-warning)'} />
@@ -876,8 +911,7 @@ export default function FieldDetail() {
                   }
                 </div>
 
-                {/* What-if */}
-                <WhatIfSection baseYield={forecast.yield_ctha} />
+                {/* What-if: скрыт, т.к. ML-модель бинарная (0/1), числовой сценарий неприменим */}
 
               </div>
 
