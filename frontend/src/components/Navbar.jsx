@@ -145,6 +145,7 @@ export default function Navbar() {
 
         {/* Nav icons + Avatar (right group) */}
         <div className="nav-icon-gap" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+          <NavIconBtn to="/dashboard"  icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>} label="Главная" />
           <NavIconBtn to="/history"    icon={<IconBarChart  size={19} color="rgba(255,255,255,0.85)" />} label="История урожайности" />
           <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
           <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />
