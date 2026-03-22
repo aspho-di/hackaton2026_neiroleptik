@@ -37,7 +37,8 @@ export default function Login() {
       setError('Заполните все поля')
       return
     }
-    setUser({ ...MOCK_AGRONOMIST, email: form.email })
+    const savedAvatar = localStorage.getItem(`agro_avatar_${form.email}`) || null
+    setUser({ ...MOCK_AGRONOMIST, email: form.email, avatar: savedAvatar })
     navigate('/dashboard')
   }
 

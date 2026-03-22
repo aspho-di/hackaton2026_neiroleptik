@@ -27,7 +27,15 @@ function buildRadarData(items) {
     const entry = { subject: ax }
     items.forEach(({ field, forecast, sensors, precip }, i) => {
       let val = 0
-      if (ax === 'Урожайность') val = forecast?.yield_ctha != null ? Math.min((forecast.yield_ctha / 50) * 100, 100) : 0
+      if (ax === 'Урожайность') {
+        // yield_formula_ctha — Go-формула (ц/га, диапазон ~0–6)
+        // yield_ctha — ML бинарный (0 или 1)
+        if (forecast?.yield_formula_ctha != null) {
+          val = Math.min((forecast.yield_formula_ctha / 6) * 100, 100)
+        } else {
+          val = (forecast?.yield_ctha ?? 0) * 100  // 0% или 100%
+        }
+      }
       if (ax === 'Влажность')   val = Math.max(0, 100 - Math.abs(sensors.soil_moisture - 50) * 2)
       if (ax === 'Осадки')      val = Math.min((precip / 25) * 100, 100)
       if (ax === 'Температура') val = Math.max(0, ((40 - sensors.air_temp) / 25) * 100)
@@ -64,10 +72,24 @@ function CompareTable({ items }) {
       ), numeric: false,
     },
     {
-      label: 'Прогноз ц/га',
-      get: (item) => item.forecast.yield_ctha,
+      label: 'Прогноз урожая',
+      // Для сравнения: приоритет у Go-формулы (ц/га), иначе ML бинарный
+      get: (item) => item.forecast.yield_formula_ctha ?? (item.forecast.yield_ctha ?? 0),
       higherIsBetter: true, numeric: true,
-      render: (item) => `${item.forecast.yield_ctha} ц/га`,
+      render: (item) => {
+        const formula = item.forecast.yield_formula_ctha
+        const binary  = item.forecast.yield_ctha
+        const label   = item.forecast.yield_label
+        if (formula != null) {
+          return (
+            <span>
+              <b>{formula} ц/га</b>
+              {binary != null && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 5 }}>({label ?? (binary === 1 ? 'хороший' : 'низкий')})</span>}
+            </span>
+          )
+        }
+        return <span style={{ color: binary === 1 ? 'var(--color-normal)' : 'var(--color-anomaly)', fontWeight: 600 }}>{label ?? (binary === 1 ? 'Хороший' : 'Низкий')}</span>
+      },
     },
     {
       label: 'Влажность почвы',

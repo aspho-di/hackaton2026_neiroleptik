@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { fetchAlerts, markAlertRead as markAlertReadApi } from '../api/client'
 import { IconWarning, IconCircleAlert, IconCheck, IconX } from '../components/icons/Icons'
 import { getUser } from '../auth'
-import { loadSavedFields } from '../components/AddFieldModal'
 
 function makeWelcome(user) {
   const name = user?.name?.trim().split(' ').slice(1, 2).join('') || 'Агроном'
@@ -40,8 +39,7 @@ function getDeletedIds() {
 }
 
 export default function Alerts() {
-  const user      = getUser()
-  const hasFields = loadSavedFields().length > 0
+  const user = getUser()
 
   const [filter,     setFilter]     = useState('all')
   const [readIds,    setReadIds]    = useState(getReadIds)
@@ -64,6 +62,7 @@ export default function Alerts() {
     setReadIds(prev => {
       const next = prev.includes(id) ? prev : [...prev, id]
       localStorage.setItem('alerts_read', JSON.stringify(next))
+      window.dispatchEvent(new Event('alerts-read-updated'))
       return next
     })
     markAlertReadApi(id).catch(() => {})
@@ -74,6 +73,7 @@ export default function Alerts() {
     setReadIds(prev => {
       const next = [...new Set([...prev, ...all])]
       localStorage.setItem('alerts_read', JSON.stringify(next))
+      window.dispatchEvent(new Event('alerts-read-updated'))
       return next
     })
   }

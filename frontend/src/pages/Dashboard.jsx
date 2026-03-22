@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import FieldList from '../components/FieldList'
-import AddFieldModal, { loadSavedFields } from '../components/AddFieldModal'
+import AddFieldModal, { loadSavedFields, saveFields } from '../components/AddFieldModal'
 import { fetchFields } from '../api/client'
 import { getUser } from '../auth'
 import WheatEmoji from '../components/icons/WheatEmoji'
@@ -25,15 +25,19 @@ function DataSourcesWidget() {
   const checkAll = useCallback(async () => {
     setStatuses(Object.fromEntries(DATA_SOURCES.map(s => [s.key, 'checking'])))
     const results = await Promise.all(DATA_SOURCES.map(async s => {
+      // ML-хелс проксируется через Go (Go пингует оба ML), даём 10 сек
+      const timeout = s.key === 'ml' ? 10000 : 3000
       try {
         const ctrl  = new AbortController()
-        const timer = setTimeout(() => ctrl.abort(), 3000)
+        const timer = setTimeout(() => ctrl.abort(), timeout)
         const res   = await fetch(s.url, { signal: ctrl.signal, method: 'GET' })
         clearTimeout(timer)
         if (s.key === 'ml' && res.ok) {
-          // ml/health возвращает { status, ml_yield_service, ml_irrigation_service }
+          // ml/health возвращает { status:'ok'|'degraded', ml_yield_service, ml_irrigation_service }
           const data = await res.json()
-          return [s.key, data.status === 'ok' ? 'online' : 'offline']
+          if (data.status === 'ok') return [s.key, 'online']
+          if (data.status === 'degraded') return [s.key, 'degraded']
+          return [s.key, 'offline']
         }
         return [s.key, res.ok || res.status < 500 ? 'online' : 'offline']
       } catch {
@@ -46,12 +50,12 @@ function DataSourcesWidget() {
 
   useEffect(() => { checkAll() }, [checkAll])
 
-  const allOnline  = Object.values(statuses).every(s => s === 'online')
-  const anyOffline = Object.values(statuses).some(s => s === 'offline')
-  const checking   = Object.values(statuses).some(s => s === 'checking')
+  const anyOffline  = Object.values(statuses).some(s => s === 'offline')
+  const anyDegraded = Object.values(statuses).some(s => s === 'degraded')
+  const checking    = Object.values(statuses).some(s => s === 'checking')
 
-  const overallColor = checking ? '#f59e0b' : anyOffline ? '#ef4444' : '#4caf50'
-  const overallLabel = checking ? 'Проверка...' : anyOffline ? 'Нет связи' : 'Все активны'
+  const overallColor = checking ? '#f59e0b' : anyOffline ? '#ef4444' : anyDegraded ? '#f59e0b' : '#4caf50'
+  const overallLabel = checking ? 'Проверка...' : anyOffline ? 'Нет связи' : anyDegraded ? 'Частично' : 'Все активны'
 
   return (
     <div style={{
@@ -92,6 +96,8 @@ function DataSourcesWidget() {
                   ? <IconCheck size={11} color="var(--color-normal)" />
                   : s === 'offline'
                   ? <IconX size={11} color="var(--color-anomaly)" />
+                  : s === 'degraded'
+                  ? <span style={{ color: 'var(--color-warning)', fontSize: 10, fontWeight: 700 }}>~</span>
                   : <span style={{ color: 'var(--color-warning)', fontSize: 11, fontWeight: 600 }}>…</span>}
               </span>
             </span>
@@ -166,8 +172,37 @@ export default function Dashboard() {
   const parts = (user?.name || '').trim().split(' ')
   const firstName = parts.slice(1, 3).join(' ') || 'Агроном'
 
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h >= 5  && h < 12) return 'Доброе утро'
+    if (h >= 12 && h < 18) return 'Добрый день'
+    if (h >= 18 && h < 23) return 'Добрый вечер'
+    return 'Доброй ночи'
+  })()
+
   const [savedFields, setSavedFields] = useState(() => loadSavedFields())
   const [showModal, setShowModal] = useState(false)
+
+  const [tgBanner, setTgBanner] = useState(() => {
+    try {
+      return !localStorage.getItem('telegram_connected') && !localStorage.getItem('tg_banner_dismissed')
+    } catch { return false }
+  })
+
+  useEffect(() => {
+    function onTgChanged() {
+      try {
+        setTgBanner(!localStorage.getItem('telegram_connected') && !localStorage.getItem('tg_banner_dismissed'))
+      } catch {}
+    }
+    window.addEventListener('telegram-connected', onTgChanged)
+    return () => window.removeEventListener('telegram-connected', onTgChanged)
+  }, [])
+
+  function dismissTgBanner() {
+    try { localStorage.setItem('tg_banner_dismissed', '1') } catch {}
+    setTgBanner(false)
+  }
 
   useEffect(() => {
     fetchFields().then(data => {
@@ -186,7 +221,9 @@ export default function Dashboard() {
       setSavedFields(prev => {
         const backendIds = new Set(backendFields.map(f => f.field_id))
         const localOnly  = prev.filter(f => !backendIds.has(f.field_id))
-        return [...backendFields, ...localOnly]
+        const merged = [...backendFields, ...localOnly]
+        saveFields(merged)   // persist so History/Compare see all fields immediately
+        return merged
       })
     }).catch(() => {})
   }, [])
@@ -239,7 +276,7 @@ export default function Dashboard() {
         {/* Greeting */}
         <div style={{ marginBottom: '20px' }}>
           <h1 className="page-title">
-            Добрый день, {firstName}!
+            {greeting}, {firstName}!
           </h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
             Ростовская область — прогнозы урожайности и рекомендации по поливу
@@ -252,6 +289,47 @@ export default function Dashboard() {
             <StatPill key={card.key} dot={card.dot} label={card.label} count={allFields.filter(card.filter).length} />
           ))}
         </div>
+
+        {/* Telegram banner */}
+        {tgBanner && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: '#e0f2fe', border: '1px solid #bae6fd',
+            borderRadius: 'var(--radius-card)', padding: '12px 16px',
+            marginBottom: 16,
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="12" fill="#29B6F6" />
+              <path d="M5.5 11.5l11-4.5-1.5 9-3.5-2.5-2 2v-3l5-4.5-6.5 3.5L5.5 11.5z" fill="#fff" />
+            </svg>
+            <span style={{ flex: 1, fontSize: 13, color: '#0369a1' }}>
+              <b>Подключите Telegram</b> — получайте мгновенные уведомления об аномалиях прямо в мессенджер
+            </span>
+            <a
+              href="/profile"
+              style={{
+                padding: '6px 14px', borderRadius: 7,
+                background: '#29B6F6', color: '#fff',
+                fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                fontFamily: 'Montserrat, sans-serif', flexShrink: 0,
+              }}
+            >
+              Подключить
+            </a>
+            <button
+              onClick={dismissTgBanner}
+              title="Закрыть"
+              style={{
+                background: 'none', border: 'none',
+                cursor: 'pointer', padding: 4, flexShrink: 0,
+                color: '#0369a1', opacity: 0.6,
+                display: 'flex', alignItems: 'center',
+              }}
+            >
+              <IconX size={16} color="#0369a1" />
+            </button>
+          </div>
+        )}
 
         {/* Data sources status */}
         <DataSourcesWidget />

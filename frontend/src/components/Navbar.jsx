@@ -94,11 +94,16 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    fetchAlerts().then(alerts => {
-      if (!Array.isArray(alerts)) return
-      const readIds = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
-      setUnreadCount(alerts.filter(a => !readIds.includes(a.id) && !a.is_read).length)
-    }).catch(() => {})
+    function recalc() {
+      fetchAlerts().then(alerts => {
+        if (!Array.isArray(alerts)) return
+        const readIds = (() => { try { return JSON.parse(localStorage.getItem('alerts_read') || '[]') } catch { return [] } })()
+        setUnreadCount(alerts.filter(a => !readIds.includes(a.id) && !a.is_read).length)
+      }).catch(() => {})
+    }
+    recalc()
+    window.addEventListener('alerts-read-updated', recalc)
+    return () => window.removeEventListener('alerts-read-updated', recalc)
   }, [])
 
   const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
@@ -133,18 +138,21 @@ export default function Navbar() {
         justifyContent: 'space-between',
       }}>
         {/* Logo */}
-        <NavLink to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
-          <WheatEmoji size={28} />
-          <span className="nav-brand-label" style={{
-            color: '#fff', fontFamily: 'Montserrat, sans-serif',
-            fontWeight: 700, fontSize: '16px', letterSpacing: '0.01em',
-          }}>
-            АгроАналитика
-          </span>
-        </NavLink>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+          <NavLink to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            <WheatEmoji size={28} />
+            <span className="nav-brand-label" style={{
+              color: '#fff', fontFamily: 'Montserrat, sans-serif',
+              fontWeight: 700, fontSize: '16px', letterSpacing: '0.01em',
+            }}>
+              АгроАналитика
+            </span>
+          </NavLink>
+        </div>
 
         {/* Nav icons + Avatar (right group) */}
         <div className="nav-icon-gap" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+          <NavIconBtn to="/dashboard" icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>} label="Главная" />
           <NavIconBtn to="/history"    icon={<IconBarChart  size={19} color="rgba(255,255,255,0.85)" />} label="История урожайности" />
           <NavIconBtn to="/compare"   icon={<IconCompare   size={19} color="rgba(255,255,255,0.85)" />} label="Сравнение участков" />
           <NavIconBtn to="/irrigation" icon={<IconDroplets  size={19} color="rgba(255,255,255,0.85)" />} label="Оптимизация полива" />

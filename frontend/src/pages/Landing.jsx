@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { getUser } from '../auth'
 import WheatEmoji from '../components/icons/WheatEmoji'
 import { IconWheat, IconDroplet, IconWarning, IconBarChart, IconDroplets, IconCheck } from '../components/icons/Icons'
 
@@ -228,6 +229,10 @@ function Arrow() {
 // ── Main Landing ───────────────────────────────────────────────────────────────
 export default function Landing() {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (getUser()) navigate('/dashboard', { replace: true })
+  }, [navigate])
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>

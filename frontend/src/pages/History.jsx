@@ -4,8 +4,8 @@ import {
   CartesianGrid, ReferenceLine,
   ComposedChart, Bar, Legend,
 } from 'recharts'
-import { loadSavedFields } from '../components/AddFieldModal'
 import { fetchPredictions, fetchSensorData } from '../api/client'
+import { useFields } from '../hooks/useFields'
 import { IconDownload, IconWarning, IconBarChart, IconArrowUp, IconInfo } from '../components/icons/Icons'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -125,12 +125,14 @@ function PredTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload
   const yieldVal = d?.yield_ctha
-  const yieldColor = yieldVal === 1 ? '#4caf50' : yieldVal === 0 ? '#ef4444' : 'var(--color-text-muted)'
-  const yieldText  = yieldVal === 1 ? '1 — урожаемо' : yieldVal === 0 ? '0 — не урожаемо' : '—'
+  const rating = yieldVal != null ? getRating(yieldVal) : null
   return (
     <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
       <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
-      <div style={{ color: yieldColor, fontWeight: 600 }}>Урожаемость: {yieldText}</div>
+      {yieldVal != null
+        ? <div style={{ color: rating.color, fontWeight: 600 }}>Урожайность: {yieldVal} ц/га · {rating.label}</div>
+        : <div style={{ color: 'var(--color-text-muted)' }}>Нет данных</div>
+      }
       {d?.confidence != null && (
         <div style={{ color: 'var(--color-text-muted)' }}>Уверенность: {Math.round(d.confidence * 100)}%</div>
       )}
@@ -154,8 +156,15 @@ function OblastTooltip({ active, payload, label }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function History() {
-  const allFields = loadSavedFields()
-  const [selectedFieldId, setSelectedFieldId] = useState(() => allFields[0]?.field_id ?? null)
+  const { fields: allFields, loading: fieldsLoading } = useFields()
+  const [selectedFieldId, setSelectedFieldId] = useState(null)
+
+  // Select first field once fields are loaded
+  useEffect(() => {
+    if (selectedFieldId === null && allFields.length > 0) {
+      setSelectedFieldId(allFields[0].field_id)
+    }
+  }, [allFields, selectedFieldId])
   const [predictions,  setPredictions]  = useState([])
   const [predsLoading, setPredsLoading] = useState(false)
   const [backendSensors, setBackendSensors] = useState([])
@@ -264,6 +273,15 @@ export default function History() {
     a.download = `history_${(field?.name ?? 'field').replace(/\s/g, '_')}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (fieldsLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--color-text-muted)', fontSize: 14 }}>
+        Загрузка участков...
+      </div>
+    )
   }
 
   // ── No fields ──────────────────────────────────────────────────────────────
@@ -382,13 +400,10 @@ export default function History() {
           color="var(--color-text)"
         />
         <StatCard
-          label="Доля урожаемых прогнозов"
-          value={(() => {
-            const good = predictions.filter(p => p.yield_prediction === 1).length
-            return predictions.length > 0 ? `${good} / ${predictions.length}` : '—'
-          })()}
-          sub={predictions.length > 0 ? `бинарный прогноз ML (0/1)` : 'нет данных'}
-          color={predictions.length > 0 ? 'var(--color-normal)' : 'var(--color-text-muted)'}
+          label="Средняя урожайность"
+          value={avgYield != null ? `${avgYield} ц/га` : '—'}
+          sub={avgYield != null ? getRating(avgYield).label : 'нет данных'}
+          color={avgYield != null ? getRating(avgYield).color : 'var(--color-text-muted)'}
         />
         <StatCard
           label="Аномалии в прогнозах"
@@ -414,10 +429,10 @@ export default function History() {
       {/* Prediction history chart */}
       <div style={card}>
         <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--color-text)', marginBottom: 2 }}>
-          История прогнозов урожаемости
+          История прогнозов урожайности
         </div>
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 16 }}>
-          Бинарный прогноз ML: <b style={{ color: '#4caf50' }}>1 = урожаемо</b>, <b style={{ color: '#ef4444' }}>0 = не урожаемо</b>. Каждая точка — реальный прогноз.
+          Прогнозная урожайность по датчикам (ц/га). Каждая точка — реальный прогноз из системы.
         </div>
 
         {predsLoading ? (
@@ -438,31 +453,38 @@ export default function History() {
               />
               <YAxis
                 tick={{ fontSize: 11, fill: '#6b7c6e' }}
-                width={40} axisLine={false} tickLine={false}
-                domain={[-0.1, 1.1]}
-                ticks={[0, 1]}
-                tickFormatter={v => v === 1 ? '1 ✓' : v === 0 ? '0 ✗' : ''}
+                width={44} axisLine={false} tickLine={false}
+                domain={['auto', 'auto']}
+                tickFormatter={v => `${v}`}
+                unit=" ц/га"
               />
               <Tooltip content={<PredTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1 }} />
-              <ReferenceLine y={0.5} stroke="#9ca3af" strokeDasharray="4 4" strokeWidth={1} />
+              <ReferenceLine y={33} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1} label={{ value: 'порог', fontSize: 10, fill: '#f59e0b', position: 'insideTopRight' }} />
               <Line
-                type="stepAfter" dataKey="yield_ctha"
+                type="monotone" dataKey="yield_ctha"
                 stroke="#4caf50" strokeWidth={2}
-                dot={({ cx, cy, payload }) => (
-                  <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={6}
-                    fill={payload.yield_ctha === 1 ? '#4caf50' : payload.yield_ctha === 0 ? '#ef4444' : '#9ca3af'}
-                    stroke="#fff" strokeWidth={2} />
-                )}
-                activeDot={{ r: 8 }}
+                dot={({ cx, cy, payload }) => {
+                  const r = payload.yield_ctha != null ? getRating(payload.yield_ctha) : null
+                  return r ? (
+                    <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={5}
+                      fill={r.color} stroke="#fff" strokeWidth={2} />
+                  ) : null
+                }}
+                activeDot={{ r: 7 }}
                 connectNulls={false}
                 isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
         )}
-        {predChartData.some(d => d.yield_ctha === 0) && (
-          <div style={{ fontSize: 11, color: '#ef4444', marginTop: 8 }}>
-            <span style={{ fontWeight: 700 }}>●</span> Красные точки — прогноз 0 (не урожаемо)
+        {predChartData.length > 0 && (
+          <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--color-text-muted)', flexWrap: 'wrap' }}>
+            {[{ color: '#16a34a', label: '≥40 ц/га — Отличный' }, { color: '#4caf50', label: '33–39 — Хороший' }, { color: '#f59e0b', label: '28–32 — Средний' }, { color: '#ef4444', label: '<28 — Плохой' }].map(({ color, label }) => (
+              <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                {label}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -480,7 +502,7 @@ export default function History() {
           <EmptyBlock text="Нет показаний датчиков. Перейдите на карточку поля, введите данные и нажмите «Рассчитать»." />
         ) : (
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={sensorChartData} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
+            <LineChart data={sensorChartData} margin={{ top: 8, right: 56, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -488,11 +510,18 @@ export default function History() {
                 axisLine={false} tickLine={false}
                 interval="preserveStartEnd"
               />
-              <YAxis tick={{ fontSize: 11, fill: '#6b7c6e' }} width={42} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="moisture" orientation="left"
+                tick={{ fontSize: 11, fill: '#3b82f6' }} width={44}
+                axisLine={false} tickLine={false}
+                domain={[0, 100]} unit="%" />
+              <YAxis yAxisId="temp" orientation="right"
+                tick={{ fontSize: 11, fill: '#f59e0b' }} width={44}
+                axisLine={false} tickLine={false}
+                unit="°C" />
               <Tooltip content={<SensorTooltip />} />
               <Legend formatter={n => n === 'soil_moisture' ? 'Влажность почвы, %' : 'Темп. воздуха, °C'} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              <Line type="monotone" dataKey="soil_moisture" name="soil_moisture" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="air_temperature" name="air_temperature" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
+              <Line yAxisId="moisture" type="monotone" dataKey="soil_moisture" name="soil_moisture" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
+              <Line yAxisId="temp" type="monotone" dataKey="air_temperature" name="air_temperature" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -580,7 +609,7 @@ export default function History() {
             />
             <Line
               type="monotone" dataKey="yield_ctha"
-              stroke="#9ca3af" strokeWidth={2} strokeDasharray="0"
+              stroke="#9ca3af" strokeWidth={2}
               dot={{ r: 4, fill: '#9ca3af', stroke: '#fff', strokeWidth: 2 }}
               activeDot={{ r: 6 }}
               isAnimationActive={false}
@@ -614,7 +643,7 @@ export default function History() {
               stroke="#9ca3af" strokeWidth={2}
               dot={({ cx, cy, value }) => (
                 <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={4}
-                  fill={value >= 0 ? '#9ca3af' : '#d1d5db'}
+                  fill={value >= 0 ? '#22c55e' : '#ef4444'}
                   stroke="#fff" strokeWidth={1.5} />
               )}
               name="water_balance" isAnimationActive={false}

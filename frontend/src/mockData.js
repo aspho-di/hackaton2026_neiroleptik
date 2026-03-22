@@ -75,17 +75,6 @@ export const MOCK_FORECAST = {
   _source: 'mock',
 }
 
-// Мок ответа POST /recommend/irrigation — структура совпадает с реальным API (:8002)
-export const MOCK_IRRIGATION = {
-  irrigate: true,
-  amount_mm: 25,
-  when: "2024-06-15",
-  confidence: "high",
-  status: "normal",
-  message: null,
-  anomalies: [],
-}
-
 export const MOCK_FORECAST_ANOMALY = {
   field_id: 7,
   yield_ctha: 0,
