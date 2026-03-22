@@ -52,18 +52,26 @@ def predict_from_forecast(district: str = "rostov") -> dict:
 
     precip_forecast = df_forecast[["date", "precipitation_sum"]].to_dict(orient="records")
 
+    # Оценка урожайности в ц/га из бинарного классификатора:
+    # threshold — центр шкалы; P(1) смещает оценку вверх/вниз на ±40% от порога
+    yield_estimate = round(threshold + (float(proba[1]) - 0.5) * threshold * 0.8, 2)
+
     return {
-        "yield_actual": yield_actual,                  # 0 = низкий, 1 = хороший
+        # Бинарный формат (основной)
+        "yield_actual": yield_actual,                          # 0 = низкий, 1 = хороший
         "yield_label": "хороший" if yield_actual == 1 else "низкий",
-        "yield_threshold_centner_per_ha": threshold,   # порог бинаризации
-        "confidence_proba": yield_proba,               # уверенность модели [0-1]
-        "model_cv_accuracy": cv_acc,                   # коэффициент обученности
+        "yield_threshold_centner_per_ha": threshold,
+        "confidence_proba": yield_proba,                       # float [0-1]
+        "confidence": "high" if yield_proba >= 0.7 else "low", # строка для совместимости
+        "model_cv_accuracy": cv_acc,
+        # Float-формат (совместимость с deployed-версией)
+        "yield_prediction_centner_per_ha": yield_estimate,
         "weather_summary": {
             "avg_temp": round(features["temp_mean"], 1),
             "total_precip_mm": round(features["precip_total"], 1),
             "hot_days": int(features["hot_days"]),
         },
-        "precip_forecast_7days": precip_forecast
+        "precip_forecast_7days": precip_forecast,
     }
 
 
