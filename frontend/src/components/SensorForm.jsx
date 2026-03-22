@@ -130,7 +130,10 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
       // Шаг 2: сохранить данные датчика (Go :8080)
       // Бэк принимает: { field_id, humidity, soil_moisture, temperature }
       // wind_speed и soil_temperature не хранятся в БД — только для ML
-      await saveSensorData(fieldId, humidity, soil_moisture, air_temperature)
+      const saveResp = await saveSensorData(fieldId, humidity, soil_moisture, air_temperature)
+      if (saveResp?.anomaly_detected) {
+        setValidWarnings(prev => [...prev, 'Бэкенд обнаружил аномалию в показаниях датчика'])
+      }
 
       // Шаг 3: рекомендация полива (Python :8002 /recommend/irrigation)
       const irrigationData = await fetchIrrigationRecommend(
@@ -332,6 +335,21 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
               <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
                 {result.reason}
               </div>
+            )}
+
+            {result.profile_used && (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ fontSize: 11, color: 'var(--color-text-muted)', cursor: 'pointer', userSelect: 'none', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Профиль культуры: {result.profile_used.display_name ?? result.profile_used.crop_name}
+                </summary>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                  {result.profile_used.moisture_threshold_low  != null && <span>Влажность min: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.moisture_threshold_low}%</b></span>}
+                  {result.profile_used.moisture_threshold_high != null && <span>Влажность max: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.moisture_threshold_high}%</b></span>}
+                  {result.profile_used.base_water_mm           != null && <span>Базовый полив: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.base_water_mm} мм</b></span>}
+                  {result.profile_used.heat_threshold          != null && <span>Порог жары: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.heat_threshold}°C</b></span>}
+                  {result.profile_used.rain_skip_mm            != null && <span>Пропуск при осадках: <b style={{ color: 'var(--color-text)' }}>{result.profile_used.rain_skip_mm} мм</b></span>}
+                </div>
+              </details>
             )}
           </div>
             )

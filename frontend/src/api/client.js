@@ -122,7 +122,7 @@ export async function fetchForecast(field_id, latitude, longitude) {
         avg_temp:        ws.avg_temp        ?? null,
         total_precip_mm: ws.total_precip_mm ?? null,
         hot_days:        ws.hot_days        ?? null,
-        water_balance:   null,
+        water_balance:   precipArr ? Math.round(precipArr.reduce((s, v) => s + v, 0) - 4.0 * precipArr.length) : null,
       } : null,
       _source: 'ml',
     }

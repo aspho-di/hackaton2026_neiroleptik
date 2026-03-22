@@ -5,7 +5,7 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { getMockForecastForField } from '../mockData'
-import { fetchForecast, fetchCurrentWeather, deleteField, fetchSensorData, validateSensorData, fetchIrrigationRecommend, saveSensorData } from '../api/client'
+import { fetchForecast, fetchCurrentWeather, deleteField, updateField, fetchSensorData, validateSensorData, fetchIrrigationRecommend, saveSensorData } from '../api/client'
 
 import { useFields } from '../hooks/useFields'
 import { IconDroplet, IconThermometer, IconSun, IconTrendingUp, IconWarning, IconCheck, IconX, IconArrowLeft, IconChevronDown, IconZap, IconPencil } from '../components/icons/Icons'
@@ -17,7 +17,9 @@ import PrecipChart from '../components/PrecipChart'
 import StatusBadge from '../components/StatusBadge'
 import SensorForm from '../components/SensorForm'
 import CropSVG from '../components/CropSVG'
-import { CROP_LABEL } from '../constants/districts'
+import { CROP_LABEL, CROPS } from '../constants/districts'
+import { saveFields, loadSavedFields } from '../components/AddFieldModal'
+import { getUser } from '../auth'
 
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const ET0  = 4.0
@@ -81,13 +83,14 @@ function WeatherSummaryRow({ summary }) {
   const { avg_temp, total_precip_mm, hot_days, water_balance } = summary
   const wbColor = water_balance >= 0 ? 'var(--color-normal)' : 'var(--color-anomaly)'
   const items = [
-    { icon: <IconThermometer size={16} color="#c2410c" />, label: 'Средняя темп.', value: `${avg_temp}°C`, color: avg_temp > 30 ? '#c2410c' : 'var(--color-text)' },
-    { icon: <IconDroplet     size={16} color="#1d4ed8" />, label: 'Осадки',        value: `${total_precip_mm} мм`, color: 'var(--color-text)' },
-    { icon: <IconSun         size={16} color="#f59e0b" />, label: 'Жарких дней',   value: hot_days, color: hot_days > 5 ? '#f59e0b' : 'var(--color-text)' },
-    { icon: <IconTrendingUp  size={16} color={wbColor} />, label: 'Водный баланс', value: `${water_balance > 0 ? '+' : ''}${water_balance} мм`, color: wbColor },
-  ]
+    avg_temp        != null && { icon: <IconThermometer size={16} color="#c2410c" />, label: 'Средняя темп.', value: `${avg_temp}°C`, color: avg_temp > 30 ? '#c2410c' : 'var(--color-text)' },
+    total_precip_mm != null && { icon: <IconDroplet     size={16} color="#1d4ed8" />, label: 'Осадки (7 дн)', value: `${total_precip_mm} мм`, color: 'var(--color-text)' },
+    hot_days        != null && { icon: <IconSun         size={16} color="#f59e0b" />, label: 'Жарких дней',   value: hot_days, color: hot_days > 5 ? '#f59e0b' : 'var(--color-text)' },
+    water_balance   != null && { icon: <IconTrendingUp  size={16} color={wbColor} />, label: 'Водный баланс', value: `${water_balance > 0 ? '+' : ''}${water_balance} мм`, color: wbColor },
+  ].filter(Boolean)
+  const cols = items.length
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12, marginBottom: 20 }}>
       {items.map(({ icon, label, value, color }) => (
         <div key={label} style={{
           background: 'var(--color-surface)',
@@ -687,6 +690,104 @@ function MiniStat({ label, value, color }) {
   )
 }
 
+// ── EditFieldModal ─────────────────────────────────────────────────────────────
+function EditFieldModal({ field, onClose, onSaved }) {
+  const titlePart = field.name.replace(/^Участок\s+\d+\s*[—-]\s*/i, '')
+  const [form, setForm] = useState({
+    title: titlePart,
+    crop:  field.crop ?? 'wheat',
+    area:  field.area != null ? String(field.area) : '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!form.title.trim()) { setError('Введите название'); return }
+    setSaving(true)
+    setError('')
+    const newName = `Участок ${field.field_id} — ${form.title.trim()}`
+    const payload = {
+      name:          newName,
+      crop_type:     form.crop,
+      area_hectares: form.area !== '' ? Number(form.area) : (field.area ?? 100),
+      latitude:      field.latitude  ?? 46.85,
+      longitude:     field.longitude ?? 40.31,
+      user_id:       getUser()?.id ?? 1,
+    }
+    try {
+      await updateField(field.field_id, payload)
+    } catch { /* backend unavailable — still update localStorage */ }
+
+    // Update localStorage regardless of backend result
+    const updated = { ...field, name: newName, crop: form.crop, area: form.area !== '' ? Number(form.area) : field.area }
+    const allFields = loadSavedFields()
+    saveFields(allFields.map(f => f.field_id === field.field_id ? updated : f))
+
+    setSaving(false)
+    onSaved(updated)
+    onClose()
+  }
+
+  const inp = {
+    width: '100%', padding: '9px 12px', border: '1px solid var(--color-border)',
+    borderRadius: 8, fontSize: 14, outline: 'none',
+    background: 'var(--color-surface)', color: 'var(--color-text)',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+  }
+  const focus = {
+    onFocus: e => { e.target.style.borderColor = 'var(--color-accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(76,175,80,0.12)' },
+    onBlur:  e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none' },
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxWidth: 460, width: '100%', padding: '28px 28px 24px', animation: 'fadeIn 0.2s ease' }}>
+        <h2 style={{ fontSize: 17, color: 'var(--color-text)', marginBottom: 20 }}>Редактировать участок</h2>
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 13, fontWeight: 500, color: 'var(--color-text-muted)' }}>
+              Название <span style={{ color: 'var(--color-anomaly)' }}>*</span>
+              <input style={inp} {...focus} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Северный" />
+            </label>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 13, fontWeight: 500, color: 'var(--color-text-muted)' }}>
+                Культура
+                <select style={{ ...inp, cursor: 'pointer' }} {...focus} value={form.crop} onChange={e => setForm(p => ({ ...p, crop: e.target.value }))}>
+                  {CROPS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 13, fontWeight: 500, color: 'var(--color-text-muted)' }}>
+                Площадь, га
+                <input style={inp} {...focus} type="number" min="0" step="0.1" placeholder="250" value={form.area} onChange={e => setForm(p => ({ ...p, area: e.target.value }))} />
+              </label>
+            </div>
+          </div>
+
+          {error && <div style={{ color: 'var(--color-anomaly)', fontSize: 13, marginTop: 10 }}>{error}</div>}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+            <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}>
+              Отмена
+            </button>
+            <button type="submit" disabled={saving} style={{ background: 'var(--color-accent)', border: 'none', borderRadius: 8, padding: '9px 24px', fontSize: 14, fontWeight: 600, color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Montserrat, sans-serif', opacity: saving ? 0.7 : 1 }}>
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function FieldDetail() {
   const { id } = useParams()
@@ -694,13 +795,15 @@ export default function FieldDetail() {
   const fieldId  = Number(id)
 
   const { fields: allFields, loading: fieldsLoading } = useFields()
-  const field = allFields.find(f => f.field_id === fieldId)
+  const field = editedField ?? allFields.find(f => f.field_id === fieldId)
   const [forecast,        setForecast]        = useState(null)
   const [loading,         setLoading]         = useState(true)
   const [sensorResult,    setSensorResult]    = useState(null)
   const [weatherData,     setWeatherData]     = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteError,     setDeleteError]     = useState('')
+  const [showEditModal,   setShowEditModal]   = useState(false)
+  const [editedField,     setEditedField]     = useState(null)
   const [dataMode,        setDataMode]        = useState('manual') // 'manual' | 'api'
 
   async function handleDelete() {
@@ -800,8 +903,22 @@ export default function FieldDetail() {
             <h1 style={{ fontSize: 20, color: 'var(--color-text)', marginBottom: 3 }}>{field.name}</h1>
             <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>ID поля: {field.field_id} · {CROP_LABEL[field.crop] ?? field.crop}</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             {forecast && <StatusBadge status={forecast.status} confidence={forecast.confidence} />}
+            <button
+              onClick={() => setShowEditModal(true)}
+              style={{
+                background: 'none', border: '1px solid var(--color-border)', borderRadius: 8,
+                padding: '6px 14px', fontSize: 13, fontWeight: 600,
+                color: 'var(--color-text-muted)', cursor: 'pointer',
+                fontFamily: 'Montserrat, sans-serif', transition: 'background 0.15s',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-accent-light)'; e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.color = 'var(--color-accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)' }}
+            >
+              <IconPencil size={13} color="currentColor" /> Редактировать
+            </button>
             <button
               onClick={() => { setDeleteError(''); setShowDeleteModal(true) }}
               style={{
@@ -854,6 +971,14 @@ export default function FieldDetail() {
               </div>
             </div>
           </div>
+        )}
+
+        {showEditModal && field && (
+          <EditFieldModal
+            field={field}
+            onClose={() => setShowEditModal(false)}
+            onSaved={updated => setEditedField(updated)}
+          />
         )}
 
         {showAlert && <AnomalyAlert message={sensorResult.irrigation?.message} anomalies={sensorResult.irrigation?.anomalies} />}
