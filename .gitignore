@@ -41,6 +41,3 @@ Thumbs.db
 # Логи
 *.log
 
-# Claude Code
-.claude/
-CLAUDE.md
