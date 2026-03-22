@@ -21,7 +21,7 @@ import { saveFields, loadSavedFields } from '../components/AddFieldModal'
 import { getUser } from '../auth'
 
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-const ET0  = 4.0
+const DEFAULT_ET0 = 4.0
 
 const STATUS_BG = {
   normal:  'var(--color-surface)',
@@ -46,8 +46,12 @@ function BalanceDot({ cx, cy, value }) {
   return <circle cx={cx} cy={cy} r={4} fill={value >= 0 ? '#22c55e' : '#ef4444'} stroke="#fff" strokeWidth={1.5} />
 }
 
-function WaterBalanceChart({ precip, irrigation }) {
-  const data = precip.slice(0, 7).map((p, i) => ({ day: DAYS[i], balance: +(p - ET0).toFixed(1) }))
+function WaterBalanceChart({ precip, et0, irrigation }) {
+  const data = precip.slice(0, 7).map((p, i) => ({
+    day: DAYS[i],
+    balance: +(p - (et0?.[i] ?? DEFAULT_ET0)).toFixed(1),
+  }))
+  const avgEt0 = et0 ? (et0.slice(0, 7).reduce((s, v) => s + v, 0) / Math.min(et0.length, 7)) : DEFAULT_ET0
   const avg  = data.reduce((s, d) => s + d.balance, 0) / data.length
   const lineColor = avg >= 0 ? '#22c55e' : '#ef4444'
 
@@ -67,7 +71,7 @@ function WaterBalanceChart({ precip, irrigation }) {
     }}>
       <div style={{ marginBottom: 14, flexShrink: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', color: 'var(--color-text)', marginBottom: 2 }}>Водный баланс</div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Осадки − ET₀ ({ET0} мм/день) по дням</div>
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Осадки − ET₀ ({avgEt0.toFixed(1)} мм/день ср.) по дням</div>
       </div>
 
       <ResponsiveContainer width="100%" height={120}>
@@ -1210,7 +1214,7 @@ export default function FieldDetail() {
                 </div>
 
                 {/* Водный баланс — после расчёта */}
-                {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days ?? forecast?.precip_forecast_7days ?? []} irrigation={sensorResult.irrigation} />}
+                {sensorResult && <WaterBalanceChart precip={sensorResult.precip ?? weatherData?.precip_forecast_7days ?? forecast?.precip_forecast_7days ?? []} et0={forecast?.et0_forecast_7days ?? null} irrigation={sensorResult.irrigation} />}
 
 
               </div>

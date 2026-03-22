@@ -53,6 +53,7 @@ def predict_from_forecast(district: str = "rostov") -> dict:
     p_good = round(float(proba[1]), 3)
 
     precip_forecast = df_forecast[["date", "precipitation_sum"]].to_dict(orient="records")
+    et0_forecast    = df_forecast[["date", "et0_fao_evapotranspiration"]].to_dict(orient="records")
 
     # Оценка ц/га: threshold — центр; P(хороший) смещает ±40% от порога
     yield_estimate = round(threshold + (p_good - 0.5) * threshold * 0.8, 2)
@@ -71,6 +72,7 @@ def predict_from_forecast(district: str = "rostov") -> dict:
             "hot_days":       int(features["hot_days"]),
         },
         "precip_forecast_7days": precip_forecast,
+        "et0_forecast_7days":    et0_forecast,
     }
 
 

@@ -141,7 +141,17 @@ export async function fetchForecast(field_id, latitude, longitude, district) {
         : data.precip_forecast_7days.map(Number)
     }
 
+    // ET₀ по дням из ML: [{date, et0_fao_evapotranspiration}, ...] или null
+    let et0Arr = null
+    if (Array.isArray(data.et0_forecast_7days) && data.et0_forecast_7days.length > 0) {
+      const first = data.et0_forecast_7days[0]
+      et0Arr = (first !== null && typeof first === 'object')
+        ? data.et0_forecast_7days.map(d => Number(d.et0_fao_evapotranspiration ?? 0))
+        : data.et0_forecast_7days.map(Number)
+    }
+
     const ws = data.weather_summary ?? null
+    const totalEt0 = et0Arr ? et0Arr.reduce((s, v) => s + v, 0) : (precipArr ? 4.0 * precipArr.length : 0)
 
     return {
       yield_ctha:            yieldActual,    // 0 или 1 (бинарный)
@@ -157,11 +167,12 @@ export async function fetchForecast(field_id, latitude, longitude, district) {
       warning:               null,
       status:                confidenceRaw < 0.6 ? 'warning' : 'normal',
       precip_forecast_7days: precipArr,
+      et0_forecast_7days:    et0Arr,
       weather_summary:       ws ? {
         avg_temp:        ws.avg_temp        ?? null,
         total_precip_mm: ws.total_precip_mm ?? null,
         hot_days:        ws.hot_days        ?? null,
-        water_balance:   precipArr ? Math.round(precipArr.reduce((s, v) => s + v, 0) - 4.0 * precipArr.length) : null,
+        water_balance:   precipArr ? Math.round(precipArr.reduce((s, v) => s + v, 0) - totalEt0) : null,
       } : null,
       _source: 'ml',
     }
