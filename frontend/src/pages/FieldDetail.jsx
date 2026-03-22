@@ -795,7 +795,6 @@ export default function FieldDetail() {
   const fieldId  = Number(id)
 
   const { fields: allFields, loading: fieldsLoading } = useFields()
-  const field = editedField ?? allFields.find(f => f.field_id === fieldId)
   const [forecast,        setForecast]        = useState(null)
   const [loading,         setLoading]         = useState(true)
   const [sensorResult,    setSensorResult]    = useState(null)
@@ -804,7 +803,8 @@ export default function FieldDetail() {
   const [deleteError,     setDeleteError]     = useState('')
   const [showEditModal,   setShowEditModal]   = useState(false)
   const [editedField,     setEditedField]     = useState(null)
-  const [dataMode,        setDataMode]        = useState('manual') // 'manual' | 'api'
+  const [dataMode,        setDataMode]        = useState('manual')
+  const field = editedField ?? allFields.find(f => f.field_id === fieldId) // 'manual' | 'api'
 
   async function handleDelete() {
     await deleteField(field.field_id)
