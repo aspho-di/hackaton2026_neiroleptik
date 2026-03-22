@@ -63,7 +63,20 @@ export default function FieldCard({ field, index = 0 }) {
             </>
           )
         })()}
-        <StatusBadge status={field.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <StatusBadge status={field.status} />
+          {field.yield_ctha != null && (
+            <span style={{
+              fontSize: 12, fontWeight: 600,
+              color: 'var(--color-text-muted)',
+              background: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6, padding: '2px 8px',
+            }}>
+              {field.yield_ctha} ц/га
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Crop illustration */}

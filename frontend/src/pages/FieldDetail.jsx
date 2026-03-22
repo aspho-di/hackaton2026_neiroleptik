@@ -838,8 +838,23 @@ export default function FieldDetail() {
       } catch { /* ignore */ }
 
       if (!cancelled) {
-        setForecast(forecastData ?? getMockForecastForField(fieldId))
-        setLoading(false)  // показываем страницу сразу после прогноза
+        const fd = forecastData ?? getMockForecastForField(fieldId)
+        setForecast(fd)
+        setLoading(false)
+
+        // Сохраняем статус и урожайность в поле — чтобы Dashboard и IrrigationPlan видели актуальные данные
+        if (fd) {
+          const isAnom = fd.status === 'anomaly' || fd.anomaly_flag === true
+          const isLow  = typeof fd.confidence === 'number' ? fd.confidence < 0.7 : fd.confidence === 'low'
+          const computedStatus = isAnom ? 'anomaly' : isLow ? 'warning' : 'normal'
+          const allFields = loadSavedFields()
+          const updated = allFields.map(f =>
+            f.field_id === fieldId
+              ? { ...f, status: computedStatus, yield_ctha: fd.yield_formula_ctha ?? fd.yield_ctha }
+              : f
+          )
+          saveFields(updated)
+        }
       }
 
       // Погода догружается в фоне
