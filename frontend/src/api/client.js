@@ -137,15 +137,50 @@ export async function fetchSensorData(field_id) {
 }
 
 // ── Рекомендация полива — через Go-прокси → Python :8002 ─────────────────────
-export async function fetchIrrigationRecommend(field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days = [], wind_speed) {
+// ML SensorPayload ожидает: crop_type, soil_moisture, humidity_air (не crop/soil_moisture_percent)
+// Ответ ML: irrigation_recommended / irrigation_volume → нормализуем в irrigate / amount_mm
+export async function fetchIrrigationRecommend(field_id, crop_type, soil_moisture, soil_temperature, air_temperature, humidity_air, wind_speed, precip_forecast_7days = []) {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/recommend/irrigation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ field_id, crop, soil_moisture_percent, soil_temperature, air_temperature, precip_forecast_7days, wind_speed }),
+      body: JSON.stringify({
+        field_id, crop_type, soil_moisture, soil_temperature,
+        air_temperature, humidity_air, wind_speed, precip_forecast_7days,
+      }),
     })
     if (!res.ok) throw new Error()
-    return await res.json()
+    const data = await res.json()
+
+    // Аномалия: ML возвращает validation-объект напрямую { status:'anomaly', anomalies, message }
+    if (data.status === 'anomaly') {
+      return {
+        irrigate:         false,
+        amount_mm:        null,
+        when:             null,
+        reason:           data.message ?? null,
+        rain_next_days_mm: null,
+        is_anomaly:       true,
+        status:           'anomaly',
+        message:          data.message ?? null,
+        anomalies:        data.anomalies ?? [],
+      }
+    }
+
+    // Норма: нормализуем имена полей ML → внутренний формат фронта
+    return {
+      irrigate:          data.irrigation_recommended ?? false,
+      amount_mm:         data.irrigation_volume      ?? null,
+      when:              data.when                   ?? null,
+      reason:            data.reason                 ?? null,
+      rain_next_days_mm: data.rain_next_days_mm      ?? null,
+      is_anomaly:        data.is_anomaly             ?? false,
+      status:            data.is_anomaly ? 'anomaly' : 'normal',
+      message:           null,
+      anomalies:         [],
+      irrigation_volume: data.irrigation_volume      ?? null,
+      profile_used:      data.profile_used           ?? null,
+    }
   } catch {
     return null
   }

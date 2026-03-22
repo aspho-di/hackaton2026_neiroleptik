@@ -423,8 +423,8 @@ function ApiSensorPanel({ fieldId, crop, onResult }) {
       const wind_speed       = data.wind_speed ?? 0
       const humidity         = data.humidity ?? 0
 
-      await validateSensorData({ field_id: fieldId, crop, soil_moisture_percent: soil_moisture, soil_temperature, air_temperature, wind_speed })
-      const irrigation = await fetchIrrigationRecommend(fieldId, crop, soil_moisture, soil_temperature, air_temperature, [], wind_speed)
+      await validateSensorData({ field_id: fieldId, crop_type: crop, soil_moisture, soil_temperature, air_temperature, humidity_air: humidity, wind_speed })
+      const irrigation = await fetchIrrigationRecommend(fieldId, crop, soil_moisture, soil_temperature, air_temperature, humidity, wind_speed)
       setResult(irrigation)
       onResult?.({ irrigation, soil_moisture, air_temperature, wind_speed })
 

@@ -115,11 +115,12 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
     try {
       // Шаг 1: валидация (Python :8002 /validate)
       const validation = await validateSensorData({
-        field_id: fieldId,
-        crop,
-        soil_moisture_percent: soil_moisture,
+        field_id:     fieldId,
+        crop_type:    crop,
+        soil_moisture,
         soil_temperature,
         air_temperature,
+        humidity_air: humidity,
         wind_speed,
       })
       if (validation?.status === 'anomaly' && validation.anomalies?.length) {
@@ -133,7 +134,7 @@ export default function SensorForm({ fieldId, crop = 'wheat', onResult }) {
 
       // Шаг 3: рекомендация полива (Python :8002 /recommend/irrigation)
       const irrigationData = await fetchIrrigationRecommend(
-        fieldId, crop, soil_moisture, soil_temperature, air_temperature, [], wind_speed
+        fieldId, crop, soil_moisture, soil_temperature, air_temperature, humidity, wind_speed
       ) ?? getMockResult(form)
 
       setResult(irrigationData)
