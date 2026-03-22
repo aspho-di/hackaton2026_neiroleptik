@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 import sys
 import os
+import time
 
 sys.path.append(os.path.dirname(__file__))
 from predict import predict_from_forecast, predict_from_manual_input
@@ -16,6 +17,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Кэш прогноза — не дёргаем Open-Meteo на каждый запрос
+_cache = {}
+CACHE_TTL = 600  # секунд (10 минут)
 
 
 class WeatherInput(BaseModel):
@@ -33,8 +38,19 @@ class WeatherInput(BaseModel):
 
 @app.get("/predict/forecast")
 def forecast(district: str = "rostov"):
-    """Прогноз по реальной погоде с Open-Meteo. district — ключ района."""
-    return predict_from_forecast(district=district)
+    """Прогноз по реальной погоде с Open-Meteo. Кэшируется на 10 минут."""
+    cache_key = f"forecast_{district}"
+    now = time.time()
+
+    if cache_key in _cache and now - _cache[cache_key]["ts"] < CACHE_TTL:
+        result = _cache[cache_key]["data"]
+        result["cached"] = True
+        return result
+
+    result = predict_from_forecast(district=district)
+    result["cached"] = False
+    _cache[cache_key] = {"data": result, "ts": now}
+    return result
 
 
 @app.get("/districts")
