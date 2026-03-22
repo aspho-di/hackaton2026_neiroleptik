@@ -123,79 +123,68 @@ function StatCard({ icon, label, value, color, bg, hint }) {
 }
 
 // ── YieldCard ─────────────────────────────────────────────────────────────────
-function YieldCard({ forecast, status }) {
-  const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, risk_factors, confidence, yield_formula_ctha } = forecast
+function YieldCard({ forecast }) {
+  const { yield_ctha, yield_label, yield_threshold, model_cv_accuracy, confidence } = forecast
 
-  const hasML    = yield_ctha === 0 || yield_ctha === 1
-  const isGood   = hasML ? yield_ctha === 1 : null
-  const confNum  = typeof confidence === 'number' ? confidence : null
-  const isMock   = forecast._source !== 'ml'
+  // yield_ctha — бинарный результат ML: 0 (низкий) или 1 (хороший)
+  const hasML   = yield_ctha === 0 || yield_ctha === 1
+  const isGood  = hasML ? yield_ctha === 1 : null
+  const confNum = typeof confidence === 'number' ? confidence : null
+  const isMock  = forecast._source !== 'ml'
 
-  // Primary display: Go formula ц/га if available, otherwise ML binary verdict
-  const hasFormula = yield_formula_ctha != null
-  const accentColor = isGood === false ? 'var(--color-anomaly)' : 'var(--color-normal)'
+  const accentColor = isGood === false ? 'var(--color-anomaly)' : isGood === true ? 'var(--color-normal)' : 'var(--color-text-muted)'
   const bgColor     = isGood === false ? '#fef2f2' : 'var(--color-accent-light)'
-  const mlLabel     = yield_label ?? (isGood ? 'хороший урожай' : isGood === false ? 'низкий урожай' : '—')
+  const borderColor = isGood === false ? '#fca5a5' : 'var(--color-border)'
+
+  // Человекочитаемый вердикт
+  const verdict = yield_label
+    ? (yield_label === 'хороший' ? 'Хороший урожай' : 'Низкий урожай')
+    : isGood === true ? 'Хороший урожай' : isGood === false ? 'Низкий урожай' : 'Нет данных'
+
+  // Диапазон ожидаемой урожайности на основе порога и уверенности
+  const thr = yield_threshold ?? 35
+  const spread = confNum != null ? Math.round((confNum - 0.5) * 24) : 5
+  const yieldRange = isGood === true
+    ? `${thr}–${thr + spread} ц/га`
+    : isGood === false
+    ? `${Math.max(0, thr - spread)}–${thr} ц/га`
+    : null
 
   return (
-    <div style={{ background: bgColor, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '16px 18px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-        <WheatEmoji size={20} />
+    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '16px 18px' }}>
+
+      {/* Шапка */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <WheatEmoji size={18} />
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>
+            Прогноз урожайности
+          </span>
+        </div>
         {isMock && (
-          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontWeight: 600 }}>
+          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontWeight: 600, flexShrink: 0 }}>
             демо-данные
           </span>
         )}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontWeight: 500 }}>
-        Прогноз урожайности
-      </div>
 
-      {hasFormula ? (
-        /* ── Главный блок: расчётная урожайность ц/га ── */
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-            <span style={{ fontSize: 52, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: accentColor, lineHeight: 1 }}>
-              {yield_formula_ctha}
-            </span>
-            <span style={{ fontSize: 18, fontWeight: 600, color: accentColor, fontFamily: 'Montserrat, sans-serif' }}>ц/га</span>
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>расчётная урожайность по датчикам</div>
-          {hasML && (
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 10,
-                background: isGood ? 'rgba(76,175,80,0.12)' : 'rgba(239,68,68,0.12)',
-                color: isGood ? 'var(--color-normal)' : 'var(--color-anomaly)',
-              }}>
-                ML: {mlLabel}
-              </span>
-              {yield_threshold != null && (
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                  порог {yield_threshold} ц/га
-                </span>
-              )}
-            </div>
-          )}
+      {/* Главный вердикт */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', color: accentColor, marginBottom: 3 }}>
+          {verdict}
         </div>
-      ) : (
-        /* ── Главный блок: только ML вердикт ── */
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <span style={{
-              fontSize: 28, fontWeight: 700, fontFamily: 'Montserrat, sans-serif',
-              color: isGood === null ? 'var(--color-text-muted)' : accentColor,
-            }}>
-              {mlLabel}
-            </span>
+        {yieldRange && (
+          <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            ожидается{' '}
+            <b style={{ color: accentColor, fontFamily: 'Montserrat, sans-serif' }}>{yieldRange}</b>
           </div>
-          {yield_threshold != null && (
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-              порог: ≥ <b style={{ color: 'var(--color-text)' }}>{yield_threshold} ц/га</b>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {yield_threshold != null && (
+          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>
+            порог бинаризации: {isGood ? '≥' : '<'} {yield_threshold} ц/га
+          </div>
+        )}
+      </div>
 
       {/* Уверенность модели */}
       {confNum != null && (
@@ -211,7 +200,7 @@ function YieldCard({ forecast, status }) {
               height: '100%', borderRadius: 3,
               width: `${Math.round(confNum * 100)}%`,
               background: confNum >= 0.7 ? 'var(--color-normal)' : 'var(--color-warning)',
-              transition: 'width 0.5s ease',
+              transition: 'width 0.6s ease',
             }} />
           </div>
         </div>
@@ -219,19 +208,8 @@ function YieldCard({ forecast, status }) {
 
       {/* Точность CV */}
       {model_cv_accuracy != null && (
-        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
           Точность модели (CV): <b style={{ color: 'var(--color-text)' }}>{Math.round(model_cv_accuracy * 100)}%</b>
-        </div>
-      )}
-
-      {risk_factors?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-          {risk_factors.map((rf, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-              <IconWarning size={13} color={rf.severity === 'critical' ? 'var(--color-anomaly)' : 'var(--color-warning)'} />
-              <span style={{ color: 'var(--color-text)' }}>{rf.label}</span>
-            </div>
-          ))}
         </div>
       )}
     </div>
@@ -863,7 +841,7 @@ export default function FieldDetail() {
           const allFields = loadSavedFields()
           const updated = allFields.map(f =>
             f.field_id === fieldId
-              ? { ...f, status: computedStatus, yield_ctha: fd.yield_formula_ctha ?? fd.yield_ctha }
+              ? { ...f, status: computedStatus }
               : f
           )
           saveFields(updated)
